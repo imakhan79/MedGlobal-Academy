@@ -1,0 +1,8 @@
+{
+  "name": "MedGlobal Academy",
+  "description": "One Platform for Medical Learning, Research, Certifications, Exams & Clinical Excellence.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

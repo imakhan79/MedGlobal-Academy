@@ -1,0 +1,102 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=JetBrains+Mono:wght@400;500;700&family=Lexend:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-readable: "Lexend", sans-serif;
+}
+
+/* Custom Editorial Accent Colors and Styles */
+.editorial-bg {
+  background-color: #FCFCFD;
+}
+.editorial-text-primary {
+  color: #0F172A;
+}
+.editorial-brand {
+  color: #003B95;
+}
+.editorial-brand-bg {
+  background-color: #003B95;
+}
+.editorial-border {
+  border-color: #E2E8F0;
+}
+
+/* 3D Flashcard flip utility classes */
+.perspective-1000 {
+  perspective: 1000px;
+}
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Theme adjustments for cards and panels in Sepia and Dark modes */
+.sepia .bg-white {
+  background-color: #FAF6EE !important;
+  color: #433422 !important;
+  border-color: #EFE1CC !important;
+}
+.sepia .text-slate-900, 
+.sepia .text-slate-800, 
+.sepia .text-slate-700, 
+.sepia .text-slate-600, 
+.sepia .text-slate-500,
+.sepia .text-gray-900,
+.sepia .text-gray-800,
+.sepia .text-gray-700,
+.sepia .text-[#0F172A] {
+  color: #433422 !important;
+}
+.sepia .bg-[#F8FAFC], 
+.sepia .bg-slate-50, 
+.sepia .bg-[#F1F5F9],
+.sepia .bg-slate-100,
+.sepia .bg-[#F8FAFC]/80 {
+  background-color: #F5EFEB !important;
+}
+
+.dark .bg-white {
+  background-color: #1E293B !important;
+  color: #F1F5F9 !important;
+  border-color: #334155 !important;
+}
+.dark .text-slate-900, 
+.dark .text-[#0F172A],
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #F8FAFC !important;
+}
+.dark .text-slate-800, 
+.dark .text-slate-700, 
+.dark .text-slate-600,
+.dark .text-gray-700,
+.dark .text-[#475569] {
+  color: #CBD5E1 !important;
+}
+.dark .text-slate-500,
+.dark .text-[#64748B] {
+  color: #94A3B8 !important;
+}
+.dark .bg-[#F8FAFC], 
+.dark .bg-slate-50, 
+.dark .bg-[#F1F5F9],
+.dark .bg-slate-100,
+.dark .bg-[#FCFCFD] {
+  background-color: #0F172A !important;
+}
+.dark header.bg-white\/80 {
+  background-color: rgba(15, 23, 42, 0.9) !important;
+}
+
+
+
