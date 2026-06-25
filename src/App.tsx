@@ -122,18 +122,19 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col antialiased border-8 box-border shadow-inner transition-colors duration-300 ${getThemeClasses()} ${fontFamily} ${fontSize} ${lineHeight} ${letterSpacing}`}>
+    <div className={`min-h-screen flex flex-col antialiased box-border transition-all duration-300 ${getThemeClasses()} ${fontFamily} ${fontSize} ${lineHeight} ${letterSpacing}`}>
       
       {/* 1. NOTIFICATION TICKER */}
       {showNotification && (
-        <div className="bg-[#003B95] text-white text-[11px] sm:text-xs py-2.5 px-4 flex justify-between items-center border-b border-[#E2E8F0] animate-slideDown">
-          <div className="flex items-center gap-2 truncate">
-            <span className="bg-white text-[#003B95] font-bold text-[9px] px-2 py-0.5 rounded uppercase">NEW UPDATE</span>
-            <span className="truncate font-medium">World Health Organization (WHO) releases 2026 guidelines on pediatric sepsis algorithms.</span>
+        <div className="bg-gradient-to-r from-[#003B95] to-[#0a2540] text-white text-[11px] sm:text-xs py-2 px-4 flex justify-between items-center border-b border-[#E2E8F0] animate-slideDown shadow-sm relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_50%)] pointer-events-none" />
+          <div className="flex items-center gap-2.5 truncate relative z-10">
+            <span className="bg-amber-400 text-[#003b95] font-black text-[9px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-xs">UPDATE</span>
+            <span className="truncate font-semibold tracking-wide">World Health Organization (WHO) releases 2026 guidelines on pediatric sepsis algorithms.</span>
           </div>
           <button
             onClick={() => setShowNotification(false)}
-            className="text-white/80 hover:text-white font-bold ml-4 focus:outline-none text-[10px]"
+            className="text-white/70 hover:text-white hover:bg-white/10 p-1 rounded-md transition-all font-bold ml-4 focus:outline-none text-[10px] uppercase tracking-wider relative z-10 cursor-pointer"
           >
             Dismiss
           </button>
@@ -221,8 +222,8 @@ export default function App() {
 
         {/* 3. SCROLLABLE GLOBAL NAVIGATION BAR */}
         {isRegistered && (
-          <div className="bg-white border-t border-[#E2E8F0]">
-            <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto flex gap-6 scrollbar-none py-1">
+          <div className="bg-[#F8FAFC]/90 backdrop-blur-md border-t border-[#E2E8F0] shadow-sm">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto flex gap-3 scrollbar-none py-2">
               {[
                 { id: "dashboard", label: "Learning Portals", icon: Layers },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
@@ -239,10 +240,14 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`py-3.5 px-1 text-xs uppercase tracking-widest font-bold flex items-center gap-2 border-b-2 transition-all shrink-0 ${isSelected ? "border-[#003B95] text-[#003B95]" : "border-transparent text-[#64748B] hover:text-[#0F172A]"}`}
+                    className={`py-2 px-4 text-[10px] uppercase tracking-widest font-extrabold flex items-center gap-2 rounded-xl transition-all shrink-0 ${
+                      isSelected 
+                        ? "bg-[#003B95] text-white shadow-md shadow-blue-900/10 scale-[1.02]" 
+                        : "text-[#475569] hover:text-[#0F172A] hover:bg-slate-100/80"
+                    }`}
                     id={`nav-tab-${tab.id}`}
                   >
-                    <IconComp className="h-3.5 w-3.5 shrink-0" />
+                    <IconComp className={`h-3.5 w-3.5 shrink-0 ${isSelected ? "text-amber-300" : "text-[#64748B]"}`} />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -271,36 +276,41 @@ export default function App() {
           ) : (
             <div className="w-full space-y-12 py-6 md:py-12 animate-fadeIn" id="homepage-landing-layout">
               {/* BEAUTIFUL COMPACT HERO SECTION */}
-              <div className="bg-gradient-to-br from-[#003B95] to-blue-950 text-white rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden border border-blue-900/50">
-                <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-12 -translate-y-6">
+              <div className="bg-gradient-to-br from-[#002B70] via-[#003B95] to-[#011B45] text-white rounded-[2rem] p-8 md:p-14 shadow-2xl relative overflow-hidden border border-blue-900/40">
+                {/* Visual Glassmorphism Accents */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl pointer-events-none -mr-40 -mt-40 z-0" />
+                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-2xl pointer-events-none -ml-20 -mb-20 z-0" />
+                
+                <div className="absolute right-0 top-0 opacity-[0.04] pointer-events-none transform translate-x-12 -translate-y-6 z-0">
                   <Activity className="w-96 h-96" />
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
                   {/* Left Hero Content */}
                   <div className="lg:col-span-7 space-y-6">
-                    <span className="bg-amber-400 text-slate-900 font-black text-[10px] px-3 py-1 rounded-full uppercase tracking-widest inline-block shadow-md">
-                      ⚡ Now with Gemini AI Clinical Insights
-                    </span>
-                    <h2 className="text-3xl md:text-5xl font-serif italic font-black leading-tight">
+                    <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 text-amber-300 font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-widest shadow-xs">
+                      <Sparkles className="h-3 w-3 text-amber-400" />
+                      <span>Now with Gemini AI Clinical Insights</span>
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-serif italic font-black leading-[1.1] tracking-tight">
                       AI-Driven Clinical Simulations, Medical Training, & Research
                     </h2>
-                    <p className="text-sm md:text-base text-slate-200 leading-relaxed max-w-xl font-medium">
+                    <p className="text-sm md:text-base text-slate-200/90 leading-relaxed max-w-xl font-medium font-sans">
                       Calibrate your clinical instincts with high-fidelity, peer-reviewed patient sandbox simulators. Seamlessly tailored for students, practitioners, faculty, and academic healthcare networks.
                     </p>
 
                     {/* Dual CTAs */}
-                    <div className="flex flex-wrap gap-3 pt-2">
+                    <div className="flex flex-wrap gap-4 pt-2">
                       <button
                         onClick={() => setIsRegistering(true)}
-                        className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold text-xs uppercase tracking-widest py-3.5 px-8 rounded-full transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                        className="bg-amber-400 hover:bg-amber-500 hover:scale-[1.02] text-[#002B70] font-black text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all shadow-lg shadow-amber-400/10 flex items-center gap-2 cursor-pointer"
                       >
                         <span>Get Started / Create Account</span>
                         <ArrowRight className="h-4.5 w-4.5" />
                       </button>
                       <button
                         onClick={() => setShowDemo(true)}
-                        className="bg-white/10 hover:bg-white/20 text-white border border-white/20 font-extrabold text-xs uppercase tracking-widest py-3.5 px-8 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
+                        className="bg-white/10 hover:bg-white/20 text-white border border-white/25 hover:border-white/40 font-extrabold text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Watch Simulation Demo</span>
                       </button>
@@ -308,13 +318,13 @@ export default function App() {
                   </div>
 
                   {/* Right Hero: DYNAMIC ROLE SELECTOR PANEL */}
-                  <div className="lg:col-span-5 bg-white text-slate-800 p-6 md:p-8 rounded-3xl border border-blue-100 shadow-xl space-y-5">
-                    <div className="space-y-1">
+                  <div className="lg:col-span-5 bg-white/95 backdrop-blur-md text-slate-800 p-6 md:p-8 rounded-[1.8rem] border border-blue-100/60 shadow-2xl space-y-5">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#64748B] block">Select Your Medical Role:</label>
                       <select
                         value={userRole}
                         onChange={(e) => setUserRole(e.target.value as UserRole)}
-                        className="w-full bg-[#F8FAFC] hover:bg-slate-100 border border-[#E2E8F0] text-sm py-2.5 px-3.5 rounded-xl text-slate-800 font-bold outline-none cursor-pointer focus:border-[#003B95] transition-colors"
+                        className="w-full bg-[#F8FAFC] hover:bg-slate-100 border border-[#E2E8F0] text-xs py-3 px-4 rounded-xl text-slate-800 font-extrabold outline-none cursor-pointer focus:border-[#003B95] focus:ring-2 focus:ring-[#003B95]/10 transition-all"
                       >
                         {Object.values(UserRole).map(role => (
                           <option key={role} value={role}>{role}</option>
@@ -323,39 +333,39 @@ export default function App() {
                     </div>
 
                     {/* Dynamic Adaptive Value Proposition content based on selected role */}
-                    <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl min-h-[140px] flex flex-col justify-between space-y-3">
+                    <div className="bg-[#F8FAFC] border border-slate-200/50 p-4 rounded-2xl min-h-[140px] flex flex-col justify-between space-y-3">
                       <div>
-                        <span className="bg-[#003B95]/10 text-[#003B95] text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded">
+                        <span className="bg-[#003B95]/10 text-[#003B95] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
                           Tailored Workspace benefits
                         </span>
                         
                         {userRole === UserRole.STUDENT && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Accelerate licensing board preparations</strong>. Access custom MCQ Q-banks with immediate diagnostic feedback, clinical OSCE interactive cases, and real-time faculty-assigned workloads.
                           </p>
                         )}
                         {userRole === UserRole.DOCTOR && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Elevate clinical competency</strong>. Simulate high-risk diagnostic scenarios in a risk-free sandbox, earn official Continuing Medical Education (CME) hours, and consult specialized board peers.
                           </p>
                         )}
                         {userRole === UserRole.FACULTY && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Calibrate academic curriculums</strong>. Build customized clinical case templates, proctor live class simulations, track topic struggles, and issue cryptographically verifiable credentials.
                           </p>
                         )}
                         {userRole === UserRole.RESEARCHER && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Synthesize healthcare research</strong>. Generate anonymized synthetic cohorts data, simulate compound interaction profiles, and sync drafts with academic writing workspaces.
                           </p>
                         )}
                         {userRole === UserRole.PHARMA && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Accelerate pharmaceutical trials</strong>. Model clinical compound interactions with virtual demographics, analyze efficacy indexes, and sponsor certified specialist modules.
                           </p>
                         )}
                         {userRole === UserRole.HOSPITAL && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2 font-sans">
+                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
                             <strong>Secure institutional safety standards</strong>. Review department competency matrixes, audit high-risk sectors, and verify medical credentials compliance.
                           </p>
                         )}
@@ -377,7 +387,7 @@ export default function App() {
                               setIsRegistered(true);
                             }
                           }}
-                          className="bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full"
+                          className="bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 px-4 rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full"
                         >
                           <Key className="h-3.5 w-3.5 text-amber-300" />
                           <span>Instant Log In as {userRole}</span>
@@ -398,28 +408,28 @@ export default function App() {
               {/* PRODUCT FEATURES OVERVIEW GRID */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { title: "Simulated Clinical Sandboxes", desc: "Test complex patient symptoms and vital signs in a risk-free academic playground.", icon: "🩺" },
-                  { title: "CME Hours & Trackers", desc: "Earn official Continuing Medical Education credentials backed by Mayo Clinic Network validations.", icon: "🏆" },
-                  { title: "Advanced Cohort Synthetics", desc: "Export high-fidelity, cryptographically compliant patient profiles for medical research.", icon: "📊" },
-                  { title: "Academic Proctoring Audits", desc: "Proctor live simulation assessments and track diagnostic gaps across classroom levels.", icon: "🏫" }
+                  { title: "Simulated Clinical Sandboxes", desc: "Test complex patient symptoms and vital signs in a risk-free academic playground.", icon: "🩺", color: "from-blue-500/5 to-indigo-500/5 border-blue-100" },
+                  { title: "CME Hours & Trackers", desc: "Earn official Continuing Medical Education credentials backed by Mayo Clinic Network validations.", icon: "🏆", color: "from-amber-500/5 to-yellow-500/5 border-amber-100" },
+                  { title: "Advanced Cohort Synthetics", desc: "Export high-fidelity, cryptographically compliant patient profiles for medical research.", icon: "📊", color: "from-emerald-500/5 to-teal-500/5 border-emerald-100" },
+                  { title: "Academic Proctoring Audits", desc: "Proctor live simulation assessments and track diagnostic gaps across classroom levels.", icon: "🏫", color: "from-purple-500/5 to-violet-500/5 border-purple-100" }
                 ].map((feat, idx) => (
-                  <div key={idx} className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-xs space-y-2.5">
-                    <span className="text-3xl">{feat.icon}</span>
-                    <h4 className="font-serif italic font-bold text-base text-slate-900">{feat.title}</h4>
-                    <p className="text-xs text-[#64748B] leading-relaxed font-medium">{feat.desc}</p>
+                  <div key={idx} className={`bg-gradient-to-br ${feat.color} border p-6 rounded-2xl shadow-xs hover:shadow-md hover:scale-[1.02] transition-all duration-300 space-y-3`}>
+                    <span className="text-3xl inline-block drop-shadow-md">{feat.icon}</span>
+                    <h4 className="font-serif italic font-bold text-base text-slate-900 leading-snug">{feat.title}</h4>
+                    <p className="text-xs text-[#526071] leading-relaxed font-medium font-sans">{feat.desc}</p>
                   </div>
                 ))}
               </div>
 
               {/* INSTITUTIONAL DEMO PASSPORTS */}
-              <div className="space-y-6 pt-4 border-t border-slate-100">
+              <div className="space-y-6 pt-6 border-t border-slate-100">
                 <div className="text-center max-w-xl mx-auto space-y-2">
-                  <div className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 font-extrabold text-[9px] py-1 px-2.5 rounded-full border border-amber-200 uppercase tracking-wider">
-                    <Key className="h-3 w-3" />
+                  <div className="inline-flex items-center gap-1.5 bg-amber-400/10 text-amber-800 font-extrabold text-[9px] py-1 px-3 rounded-full border border-amber-200 uppercase tracking-wider">
+                    <Key className="h-3 w-3 text-amber-600" />
                     <span>Institutional Demo Pass</span>
                   </div>
-                  <h3 className="font-serif italic font-bold text-slate-900 text-2xl md:text-3xl">One-Click Academic Access</h3>
-                  <p className="text-xs text-[#64748B] font-medium leading-relaxed">
+                  <h3 className="font-serif italic font-bold text-slate-900 text-2xl md:text-3xl tracking-tight">One-Click Academic Access</h3>
+                  <p className="text-xs text-[#64748B] font-semibold leading-relaxed font-sans">
                     Instantly log into fully populated, high-fidelity dashboards tailored to different segments of the academic medical ecosystem.
                   </p>
                 </div>
@@ -428,26 +438,26 @@ export default function App() {
                   {DEMO_ACCOUNTS.map((account) => (
                     <div
                       key={account.role}
-                      className="bg-white border border-[#E2E8F0] hover:border-[#003B95] p-5 rounded-3xl shadow-xs transition-all flex flex-col justify-between space-y-4 group"
+                      className="bg-white border border-[#E2E8F0] hover:border-[#003B95] hover:shadow-lg p-6 rounded-3xl shadow-sm transition-all duration-300 flex flex-col justify-between space-y-4 group"
                     >
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {/* Header info */}
                         <div className="flex items-center justify-between">
-                          <span className={`px-2.5 py-0.5 text-[8px] uppercase tracking-widest font-black rounded-md border ${account.badgeColor}`}>
+                          <span className={`px-2.5 py-1 text-[8px] uppercase tracking-widest font-black rounded-full border ${account.badgeColor}`}>
                             {account.role}
                           </span>
-                          <span className="text-2xl">{account.avatar}</span>
+                          <span className="text-3xl bg-slate-50 p-2 rounded-xl border border-slate-100/60 shadow-inner group-hover:scale-110 transition-transform duration-300">{account.avatar}</span>
                         </div>
 
                         {/* Profile Info */}
                         <div className="space-y-1">
-                          <h4 className="font-serif font-black text-slate-900 text-base">{account.name}</h4>
-                          <p className="text-[10px] text-[#003B95] font-extrabold uppercase tracking-wider">{account.org}</p>
+                          <h4 className="font-serif font-black text-slate-900 text-base tracking-tight">{account.name}</h4>
+                          <p className="text-[9px] text-[#003B95] font-black uppercase tracking-widest">{account.org}</p>
                           <span className="text-[9px] text-slate-400 font-mono block truncate">{account.email}</span>
                         </div>
 
                         {/* Capabilities/Seeded Content details */}
-                        <p className="text-xs text-[#64748B] leading-relaxed font-medium">
+                        <p className="text-xs text-[#526071] leading-relaxed font-medium font-sans">
                           {account.desc}
                         </p>
                       </div>
@@ -465,9 +475,9 @@ export default function App() {
                           setFontFamily(account.preferredFont as any);
                           setIsRegistered(true);
                         }}
-                        className="w-full bg-[#F8FAFC] hover:bg-[#003B95] hover:text-white border border-[#E2E8F0] hover:border-[#003B95] text-[#0F172A] font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-2xl text-center transition-all cursor-pointer flex items-center justify-center gap-2"
+                        className="w-full bg-[#F8FAFC] hover:bg-[#003B95] hover:text-white border border-[#E2E8F0] hover:border-[#003B95] text-[#0F172A] font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-2xl text-center transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-xs hover:shadow-md"
                       >
-                        <Key className="h-3.5 w-3.5 group-hover:text-amber-300" />
+                        <Key className="h-3.5 w-3.5 text-slate-400 group-hover:text-amber-300 transition-colors" />
                         <span>Log In Instantly ⚡</span>
                       </button>
                     </div>
@@ -760,15 +770,15 @@ export default function App() {
       )}
 
       {/* 5. BRAND FOOTER */}
-      <footer className="bg-white border-t border-[#E2E8F0] mt-12 py-6 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#94A3B8]">
-        <div className="flex flex-wrap justify-center gap-6">
-          <span>Global Active Users: 142,508</span>
-          <span>Exam Pass Rate: 91.4%</span>
-          <span>HIPAA & GDPR COMPLIANT</span>
+      <footer className="bg-slate-50/60 backdrop-blur-sm border-t border-[#E2E8F0] mt-16 py-8 px-6 md:px-10 flex flex-col md:flex-row items-center justify-between gap-6 text-[9px] font-black uppercase tracking-[0.2em] text-[#64748B]">
+        <div className="flex flex-wrap justify-center md:justify-start gap-x-8 gap-y-2">
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Global Active Users: 142,508</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Exam Pass Rate: 91.4%</span>
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> HIPAA & GDPR COMPLIANT</span>
         </div>
-        <div className="flex flex-wrap justify-center gap-6">
-          <span className="text-[#003B95] font-extrabold font-serif italic">Institutional License: Mayo Clinic Network</span>
-          <span>© 2026 MedGlobal Academy • V 4.2.0-Alpha</span>
+        <div className="flex flex-col md:items-end gap-1.5 text-center md:text-right">
+          <span className="text-[#003B95] font-black font-serif italic tracking-wider normal-case text-xs">Institutional Partner: Mayo Clinic Network</span>
+          <span className="text-slate-400 font-semibold text-[8px]">© 2026 MedGlobal Academy • V 4.2.0-Alpha</span>
         </div>
       </footer>
 

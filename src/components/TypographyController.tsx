@@ -122,9 +122,9 @@ export default function TypographyController({
             <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#64748B] block">Font Typeface</label>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { id: "font-sans", name: "Inter (Clinical)", desc: "Clean & modern UI", cssClass: "font-sans" },
+                { id: "font-sans", name: "Jakarta / Inter", desc: "Sleek geometric UI", cssClass: "font-sans" },
                 { id: "font-readable", name: "Lexend (Focus)", desc: "High comprehension", cssClass: "font-readable font-bold" },
-                { id: "font-serif", name: "Playfair (Textbook)", desc: "Academic editorial", cssClass: "font-serif" },
+                { id: "font-serif", name: "Lora / Playfair", desc: "Warm editorial layout", cssClass: "font-serif" },
                 { id: "font-mono", name: "JetBrains (Labs)", desc: "Technical metrics", cssClass: "font-mono" }
               ].map(f => (
                 <button
