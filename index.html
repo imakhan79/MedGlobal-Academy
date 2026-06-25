@@ -3,6 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function() {
+        try {
+          var originalFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: function() { return originalFetch; },
+            set: function(val) { 
+              console.warn('MedGlobal Guard: Attempted to overwrite window.fetch:', val);
+              originalFetch = val;
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch(e) {
+          console.warn('MedGlobal Guard: Failed to define window.fetch property:', e);
+        }
+      })();
+    </script>
     <title>MedGlobal Academy — Clinical Learning & Research Ecosystem</title>
   </head>
   <body>

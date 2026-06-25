@@ -16,13 +16,13 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
   const [mode, setMode] = useState<"tutor" | "research" | "coach" | "biotwin">(initialMode);
   const [messages, setMessages] = useState<Record<string, Message[]>>({
     tutor: [
-      { role: "model", content: "Welcome! I am your **AI Medical Tutor**. Ask me any medical concept, diagnostic guidelines, or pathophysiology. I am trained on standard international textbooks (Harrison's, Robbins Pathology, etc.)." }
+      { role: "model", content: "Welcome! I am your **Medical Tutor**. Ask me any medical concept, diagnostic guidelines, or pathophysiology. I am trained on standard international textbooks (Harrison's, Robbins Pathology, etc.)." }
     ],
     research: [
-      { role: "model", content: "Greetings! I am your **AI Research Assistant**. I can help you draft literature searches, formulate PICO research questions, design clinical trials, or propose sample statistical analysis plans." }
+      { role: "model", content: "Greetings! I am your **Research Assistant**. I can help you draft literature searches, formulate PICO research questions, design clinical trials, or propose sample statistical analysis plans." }
     ],
     coach: [
-      { role: "model", content: "Hello! I am your **AI Exam Coach**. Let's practice high-yield vignettes for USMLE, FCPS, FRCS, or MRCP. I can review your clinical weak spots and design custom preparation paths." }
+      { role: "model", content: "Hello! I am your **Exam Coach**. Let's practice high-yield vignettes for USMLE, FCPS, FRCS, or MRCP. I can review your clinical weak spots and design custom preparation paths." }
     ],
     biotwin: []
   });
@@ -137,8 +137,8 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
       {/* Header Tabs */}
       <div className="bg-white border-b border-[#E2E8F0] p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-5 w-5 text-[#003B95] animate-pulse" />
-          <h2 className="text-lg font-serif italic font-bold text-[#0F172A]">MedGlobal AI Medical Engines</h2>
+          <BookOpen className="h-5 w-5 text-[#003B95]" />
+          <h2 className="text-lg font-serif italic font-bold text-[#0F172A]">MedGlobal Clinical Consultation Engines</h2>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-[#F1F5F9] p-1.5 rounded-xl border border-[#E2E8F0]">
           <button
@@ -155,7 +155,7 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
             id="tab-ai-tutor"
           >
             <BookOpen className="h-4 w-4 shrink-0" />
-            <span>AI Medical Tutor</span>
+            <span>Medical Tutor</span>
           </button>
           <button
             onClick={() => { setMode("research"); setErrorMessage(""); }}
@@ -163,7 +163,7 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
             id="tab-ai-research"
           >
             <RefreshCw className="h-4 w-4 shrink-0" />
-            <span>AI Research Assistant</span>
+            <span>Research Assistant</span>
           </button>
           <button
             onClick={() => { setMode("coach"); setErrorMessage(""); }}
@@ -171,7 +171,7 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
             id="tab-ai-coach"
           >
             <HelpCircle className="h-4 w-4 shrink-0" />
-            <span>AI Exam Coach</span>
+            <span>Exam Coach</span>
           </button>
         </div>
       </div>
@@ -234,7 +234,7 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
                 </div>
                 <div className="p-4 rounded-2xl bg-white border border-[#E2E8F0] text-slate-400 text-xs flex items-center gap-2 shadow-sm rounded-tl-none font-bold uppercase tracking-wider">
                   <RefreshCw className="h-4 w-4 animate-spin text-[#003B95]" />
-                  <span>Analyzing clinical database with Gemini Medical Engine...</span>
+                  <span>Consulting clinical database reference...</span>
                 </div>
               </div>
             )}
@@ -251,7 +251,7 @@ export default function AIDialogs({ initialMode = "biotwin" }: AIDialogsProps) {
           {/* Suggested prompts */}
           <div className="p-3 bg-white border-t border-[#E2E8F0]">
             <p className="text-[9px] uppercase tracking-widest text-[#64748B] font-extrabold mb-2 flex items-center gap-1">
-              <Sparkles className="h-3 w-3 text-[#003B95]" /> Suggested Clinical Inquiries
+              <BookOpen className="h-3 w-3 text-[#003B95]" /> Suggested Clinical Inquiries
             </p>
             <div className="flex flex-wrap gap-1.5">
               {suggestions[mode as "tutor" | "research" | "coach"]?.map((sug, idx) => (

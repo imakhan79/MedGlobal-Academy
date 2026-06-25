@@ -3,6 +3,8 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
+import { PRESEEDED_MCQS } from "./src/data";
+import { CARDIOLOGY_USMLE1_Q_BANK } from "./src/data/clinicalQBank";
 
 dotenv.config();
 
@@ -75,32 +77,65 @@ Please write a highly detailed, professional, structured medical response with r
   }
 });
 
-// 2. MCQ Generator Endpoint
+// 2. MCQ Generator Endpoint helper
+function getFallbackMCQ(specialty?: string, difficulty?: string, currentQuestionText?: string) {
+  let pool = [...PRESEEDED_MCQS, ...CARDIOLOGY_USMLE1_Q_BANK];
+  
+  if (specialty) {
+    const specLower = specialty.toLowerCase();
+    let specPool = pool.filter(q => q.specialty && q.specialty.toLowerCase() === specLower);
+    if (specPool.length > 0) {
+      pool = specPool;
+    }
+  }
+  
+  if (difficulty) {
+    const diffLower = difficulty.toLowerCase();
+    let diffVal = "medium";
+    if (diffLower === "easy") diffVal = "easy";
+    else if (diffLower === "hard" || diffLower === "board-level" || diffLower === "difficult") diffVal = "hard";
+    
+    let diffPool = pool.filter(q => {
+      const qDiff = (q.difficulty || "medium").toLowerCase();
+      if (diffVal === "hard") {
+        return qDiff === "hard" || qDiff === "medium" || qDiff === "board-level" || qDiff === "difficult";
+      }
+      return qDiff === diffVal;
+    });
+    
+    if (diffPool.length > 0) {
+      pool = diffPool;
+    }
+  }
+
+  // Filter out the current question to prevent repetition if possible
+  if (currentQuestionText && pool.length > 1) {
+    const nonRepeatingPool = pool.filter(q => q.question !== currentQuestionText);
+    if (nonRepeatingPool.length > 0) {
+      pool = nonRepeatingPool;
+    }
+  }
+
+  const randomIndex = Math.floor(Math.random() * pool.length);
+  return pool[randomIndex] || PRESEEDED_MCQS[0];
+}
+
 app.post("/api/generate-mcq", async (req, res) => {
-  const { specialty, difficulty } = req.body;
+  const { specialty, difficulty, currentQuestionText } = req.body;
   const client = getAIClient();
 
   if (!client) {
-    // Fallback MCQ
-    return res.json({
-      question: `A 62-year-old male presents to the clinic with progressive exertional dyspnea and fatigue. On physical examination, a harsh crescendo-decrescendo systolic murmur is heard at the right second intercostal space, radiating to the carotids. He has a history of hypertension. Which of the following is the most likely diagnosis?`,
-      options: [
-        "Aortic Stenosis",
-        "Mitral Regurgitation",
-        "Aortic Regurgitation",
-        "Mitral Stenosis"
-      ],
-      correctAnswer: 0,
-      rationale: "The physical exam findings describe classic Aortic Stenosis (AS), characterized by a harsh crescendo-decrescendo systolic ejection murmur at the right upper sternal border with radiation to the carotid arteries (parvus et tardus carotid pulses can also be present). The symptoms of dyspnea, angina, and syncope comprise the classic triad of advanced aortic stenosis.",
-      difficulty: difficulty || "Medium",
-      specialty: specialty || "Cardiology"
-    });
+    const fallback = getFallbackMCQ(specialty, difficulty, currentQuestionText);
+    return res.json(fallback);
   }
 
   try {
     const prompt = `Generate a single multiple-choice question (MCQ) for a medical licensing exam.
 Specialty: ${specialty || "Internal Medicine"}
 Difficulty: ${difficulty || "Medium"}
+
+IMPORTANT: You MUST generate a brand-new, unique clinical vignette. DO NOT generate the same question or a similar scenario to this current question:
+"${currentQuestionText || ""}"
 
 The response must be in JSON format matching this schema:
 {
@@ -129,19 +164,8 @@ Do not include any markdown wrap or extra text. Just output the clean JSON.`;
     }
   } catch (error: any) {
     console.error("Gemini API error in generate-mcq, falling back to preseeded question:", error);
-    res.json({
-      question: `A 62-year-old male presents to the clinic with progressive exertional dyspnea and fatigue. On physical examination, a harsh crescendo-decrescendo systolic murmur is heard at the right second intercostal space, radiating to the carotids. He has a history of hypertension. Which of the following is the most likely diagnosis?`,
-      options: [
-        "Aortic Stenosis",
-        "Mitral Regurgitation",
-        "Aortic Regurgitation",
-        "Mitral Stenosis"
-      ],
-      correctAnswer: 0,
-      rationale: "The physical exam findings describe classic Aortic Stenosis (AS), characterized by a harsh crescendo-decrescendo systolic ejection murmur at the right upper sternal border with radiation to the carotid arteries (parvus et tardus carotid pulses can also be present). The symptoms of dyspnea, angina, and syncope comprise the classic triad of advanced aortic stenosis.",
-      difficulty: difficulty || "Medium",
-      specialty: specialty || "Cardiology"
-    });
+    const fallback = getFallbackMCQ(specialty, difficulty, currentQuestionText);
+    res.json(fallback);
   }
 });
 

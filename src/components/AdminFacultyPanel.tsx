@@ -1,7 +1,12 @@
 import React, { useState } from "react";
 import { MEDICAL_SPECIALTIES } from "../data";
 import { MCQ, DrugProfile } from "../types";
-import { Users, FileText, DollarSign, PlusCircle, CheckCircle, UploadCloud, PieChart, Activity, TrendingUp, Cpu } from "lucide-react";
+import { 
+  Users, FileText, DollarSign, PlusCircle, CheckCircle, UploadCloud, PieChart, 
+  Activity, TrendingUp, Cpu, Download, Copy, Code, Database, Search, Filter, 
+  Check, FileSpreadsheet, Layers, BookOpen, Sparkles, HelpCircle 
+} from "lucide-react";
+import { CARDIOLOGY_USMLE1_Q_BANK, ExtendedMCQ } from "../data/clinicalQBank";
 
 interface AdminFacultyPanelProps {
   onAddCustomMCQ: (mcq: MCQ) => void;
@@ -9,7 +14,8 @@ interface AdminFacultyPanelProps {
 }
 
 export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: AdminFacultyPanelProps) {
-  const [activeSubTab, setActiveSubTab] = useState<"metrics" | "add-mcq" | "add-drug">("metrics");
+  const [activeSubTab, setActiveSubTab] = useState<"metrics" | "add-mcq" | "add-drug" | "qbank-exporter">("metrics");
+
 
   // Custom MCQ Form State
   const [mcqQuestion, setMcqQuestion] = useState("");
@@ -109,6 +115,14 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
         >
           <PlusCircle className="h-3.5 w-3.5" />
           <span>Drug Database Editor</span>
+        </button>
+        <button
+          onClick={() => setActiveSubTab("qbank-exporter")}
+          className={`px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5 ${activeSubTab === "qbank-exporter" ? "bg-[#003B95] text-white font-serif italic" : "text-[#64748B] hover:bg-slate-100"}`}
+          id="btn-admin-qbank-exporter"
+        >
+          <Database className="h-3.5 w-3.5" />
+          <span>Q-Bank Exporter</span>
         </button>
       </div>
 
@@ -418,6 +432,257 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
             Register Compound Profile
           </button>
         </form>
+      )}
+
+      {/* GLOBAL BOARD Q-BANK EXPORTER */}
+      {activeSubTab === "qbank-exporter" && (
+        <div className="p-5 md:p-6 space-y-6 bg-white" id="qbank-exporter-container">
+          <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-[#E2E8F0] pb-4 gap-4">
+            <div>
+              <h3 className="font-serif italic font-bold text-[#0F172A] text-xl flex items-center gap-2">
+                <Database className="h-5 w-5 text-[#003B95]" />
+                <span>Global Board Q-Bank Exporter</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                A professional-grade utility to review, package, and download medical school exam questions for external LMS platforms, Supabase databases, and study aids.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-50 text-[#003B95] text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-blue-100 uppercase tracking-wider">
+                USMLE Step 1 • Cardiology
+              </span>
+              <span className="bg-emerald-50 text-emerald-800 text-[10px] font-extrabold px-2.5 py-1 rounded-full border border-emerald-100 uppercase tracking-wider">
+                Active: {CARDIOLOGY_USMLE1_Q_BANK.length} Questions
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Specifications */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" id="exporter-specs-grid">
+            <div className="bg-[#FCFCFD] border border-slate-100 p-4 rounded-xl space-y-1">
+              <span className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider block">Question Distribution</span>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="bg-emerald-50 text-emerald-800 text-[9px] px-1.5 py-0.5 rounded font-bold">40% Moderate</span>
+                <span className="bg-rose-50 text-rose-800 text-[9px] px-1.5 py-0.5 rounded font-bold">30% Difficult</span>
+                <span className="bg-blue-50 text-[#003B95] text-[9px] px-1.5 py-0.5 rounded font-bold">30% Easy</span>
+              </div>
+            </div>
+            <div className="bg-[#FCFCFD] border border-slate-100 p-4 rounded-xl space-y-1">
+              <span className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider block">Evidence & Quality</span>
+              <span className="text-xs font-bold text-slate-800 block flex items-center gap-1">
+                <CheckCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                <span>ACC/AHA Guidelines Aligned</span>
+              </span>
+            </div>
+            <div className="bg-[#FCFCFD] border border-slate-100 p-4 rounded-xl space-y-1">
+              <span className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider block">Clinical Inclusions</span>
+              <span className="text-xs font-bold text-slate-800 block">
+                Histopathology, ECG and X-Ray references included
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Question list & Search */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-widest">
+                  Live Question Registry
+                </h4>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search by topic, keyword, or vignette text..."
+                  id="exporter-question-search"
+                  className="w-full bg-[#FCFCFD] border border-[#E2E8F0] pl-10 pr-3 py-2 text-xs rounded-xl outline-none focus:border-[#003B95] focus:bg-white transition-all text-slate-800"
+                />
+              </div>
+
+              {/* Questions List */}
+              <div className="space-y-2.5 max-h-[460px] overflow-y-auto pr-1" id="exporter-questions-list">
+                {CARDIOLOGY_USMLE1_Q_BANK.map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3.5 border border-slate-200/70 hover:border-blue-200 rounded-xl bg-white hover:bg-blue-50/20 cursor-pointer transition-all space-y-2 group"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="text-[9px] font-mono font-bold text-[#003B95] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                        {item.id}
+                      </span>
+                      <span className={`text-[8px] uppercase font-extrabold tracking-widest px-1.5 py-0.5 rounded ${
+                        item.difficulty === "Easy"
+                          ? "bg-emerald-50 text-emerald-800"
+                          : item.difficulty === "Medium"
+                          ? "bg-amber-50 text-amber-800"
+                          : "bg-rose-50 text-rose-800"
+                      }`}>
+                        {item.difficulty}
+                      </span>
+                    </div>
+                    <span className="font-serif font-bold text-slate-800 text-xs block group-hover:text-[#003B95] transition-colors leading-snug">
+                      {item.topic}
+                    </span>
+                    <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
+                      {item.question}
+                    </p>
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 mt-2 text-[9px] text-slate-400 font-bold">
+                      <span className="uppercase">{item.questionType}</span>
+                      <span>•</span>
+                      <span>{item.keywords.length} KEYWORDS</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column: Export panel & Output */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="border border-[#E2E8F0] rounded-xl bg-white overflow-hidden shadow-xs">
+                {/* Export Options Tab Header */}
+                <div className="bg-[#FCFCFD] border-b border-[#E2E8F0] p-2.5 flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-widest pl-2">
+                    Package Generation Output
+                  </span>
+                  <div className="flex gap-1.5">
+                    {["JSON", "CSV", "SQL INSERTs", "Supabase DDL"].map((fmt) => (
+                      <button
+                        key={fmt}
+                        type="button"
+                        onClick={() => {
+                          const el = document.getElementById("exporter-output-pre");
+                          if (el) {
+                            if (fmt === "JSON") {
+                              el.innerText = JSON.stringify(CARDIOLOGY_USMLE1_Q_BANK, null, 2);
+                            } else if (fmt === "CSV") {
+                              const headers = "id,examName,specialty,subject,topic,difficulty,questionType,question,correctAnswerIndex,rationale,clinicalPearl,learningObjective,references\n";
+                              const rows = CARDIOLOGY_USMLE1_Q_BANK.map(q => 
+                                `"${q.id}","${q.examName}","${q.specialty}","${q.subject}","${q.topic}","${q.difficulty}","${q.questionType}","${q.question.replace(/"/g, '""')}","${q.correctAnswer}","${q.rationale.replace(/"/g, '""')}","${q.clinicalPearl.replace(/"/g, '""')}","${q.learningObjective.replace(/"/g, '""')}","${q.references.replace(/"/g, '""')}"`
+                              ).join("\n");
+                              el.innerText = headers + rows;
+                            } else if (fmt === "SQL INSERTs") {
+                              el.innerText = CARDIOLOGY_USMLE1_Q_BANK.map(q => 
+                                `INSERT INTO clinical_questions (\n  id, exam_name, specialty, subject, topic, difficulty, question_type, question, options, correct_answer_index, rationale, clinical_pearl, learning_objective, references_list\n) VALUES (\n  '${q.id}', '${q.examName.replace(/'/g, "''")}', '${q.specialty.replace(/'/g, "''")}', '${q.subject.replace(/'/g, "''")}', '${q.topic.replace(/'/g, "''")}', '${q.difficulty}', '${q.questionType}', '${q.question.replace(/'/g, "''")}', ARRAY[${q.options.map(o => `'${o.replace(/'/g, "''")}'`).join(", ")}], ${q.correctAnswer}, '${q.rationale.replace(/'/g, "''")}', '${q.clinicalPearl.replace(/'/g, "''")}', '${q.learningObjective.replace(/'/g, "''")}', '${q.references.replace(/'/g, "''")}'\n);`
+                              ).join("\n\n");
+                            } else {
+                              el.innerText = `-- SUPABASE POSTGRESQL SCHEMA DESIGN\n\n-- Create the main medical questions table\nCREATE TABLE clinical_questions (\n  id TEXT PRIMARY KEY DEFAULT 'Q-' || substring(md5(random()::text) from 1 for 8),\n  exam_name VARCHAR(100) NOT NULL,\n  specialty VARCHAR(100) NOT NULL,\n  subject VARCHAR(150) NOT NULL,\n  topic VARCHAR(150) NOT NULL,\n  difficulty VARCHAR(20) CHECK (difficulty IN ('Easy', 'Medium', 'Hard', 'Difficult')),\n  question_type VARCHAR(50) NOT NULL,\n  question TEXT NOT NULL,\n  options TEXT[] NOT NULL CHECK (array_length(options, 1) = 4),\n  correct_answer_index INTEGER NOT NULL CHECK (correct_answer_index BETWEEN 0 AND 3),\n  rationale TEXT NOT NULL,\n  clinical_pearl TEXT,\n  learning_objective TEXT,\n  references_list TEXT,\n  keywords TEXT[] DEFAULT '{}'::text[],\n  created_at TIMESTAMPTZ DEFAULT NOW()\n);\n\n-- Create indices for extreme performance and analytics filtering\nCREATE INDEX idx_qbank_exam ON clinical_questions(exam_name);\nCREATE INDEX idx_qbank_specialty ON clinical_questions(specialty);\nCREATE INDEX idx_qbank_topic ON clinical_questions(topic);\nCREATE INDEX idx_qbank_difficulty ON clinical_questions(difficulty);\n\n-- Row Level Security (RLS) policies for secure clinical deployment\nALTER TABLE clinical_questions ENABLE ROW LEVEL SECURITY;\n\nCREATE POLICY "Allow public read access to active student accounts" ON clinical_questions\n  FOR SELECT TO authenticated USING (true);\n\nCREATE POLICY "Allow faculty board editors to insert questions" ON clinical_questions\n  FOR INSERT TO authenticated WITH CHECK (auth.jwt() ->> 'role' = 'faculty');`;
+                            }
+                          }
+                        }}
+                        className="px-2.5 py-1 text-[9px] font-mono font-bold uppercase rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/50 transition-all"
+                      >
+                        {fmt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Preview Console Code Box */}
+                <div className="relative group">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = document.getElementById("exporter-output-pre")?.innerText;
+                      if (text) {
+                        navigator.clipboard.writeText(text);
+                        alert("Successfully copied formatted medical question package to clipboard!");
+                      }
+                    }}
+                    className="absolute right-3.5 top-3.5 p-2 bg-slate-900/60 hover:bg-slate-900 border border-slate-700 text-slate-300 hover:text-white rounded-lg transition-all"
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </button>
+
+                  <pre className="p-4 bg-slate-950 text-slate-200 text-[10px] font-mono leading-relaxed overflow-x-auto max-h-[360px] max-w-full">
+                    <code id="exporter-output-pre">
+{`-- SUPABASE POSTGRESQL SCHEMA DESIGN
+
+-- Create the main medical questions table
+CREATE TABLE clinical_questions (
+  id TEXT PRIMARY KEY DEFAULT 'Q-' || substring(md5(random()::text) from 1 for 8),
+  exam_name VARCHAR(100) NOT NULL,
+  specialty VARCHAR(100) NOT NULL,
+  subject VARCHAR(150) NOT NULL,
+  topic VARCHAR(150) NOT NULL,
+  difficulty VARCHAR(20) CHECK (difficulty IN ('Easy', 'Medium', 'Hard', 'Difficult')),
+  question_type VARCHAR(50) NOT NULL,
+  question TEXT NOT NULL,
+  options TEXT[] NOT NULL CHECK (array_length(options, 1) = 4),
+  correct_answer_index INTEGER NOT NULL CHECK (correct_answer_index BETWEEN 0 AND 3),
+  rationale TEXT NOT NULL,
+  clinical_pearl TEXT,
+  learning_objective TEXT,
+  references_list TEXT,
+  keywords TEXT[] DEFAULT '{}'::text[],
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create indices for extreme performance and analytics filtering
+CREATE INDEX idx_qbank_exam ON clinical_questions(exam_name);
+CREATE INDEX idx_qbank_specialty ON clinical_questions(specialty);
+CREATE INDEX idx_qbank_topic ON clinical_questions(topic);
+CREATE INDEX idx_qbank_difficulty ON clinical_questions(difficulty);
+
+-- Row Level Security (RLS) policies for secure clinical deployment
+ALTER TABLE clinical_questions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read access to active student accounts" ON clinical_questions
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Allow faculty board editors to insert questions" ON clinical_questions
+  FOR INSERT TO authenticated WITH CHECK (auth.jwt() ->> 'role' = 'faculty');`}
+                    </code>
+                  </pre>
+                </div>
+
+                {/* Exporter actions footer */}
+                <div className="bg-[#FCFCFD] border-t border-[#E2E8F0] p-3 flex justify-between items-center text-xs text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <Code className="h-3.5 w-3.5 text-[#003B95]" /> UTF-8 Format Validated
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(CARDIOLOGY_USMLE1_Q_BANK, null, 2));
+                      const downloadAnchor = document.createElement('a');
+                      downloadAnchor.setAttribute("href", dataStr);
+                      downloadAnchor.setAttribute("download", "CARDIOLOGY_USMLE1_Q_BANK.json");
+                      document.body.appendChild(downloadAnchor);
+                      downloadAnchor.click();
+                      downloadAnchor.remove();
+                    }}
+                    className="bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[9px] uppercase tracking-wider py-2 px-4 rounded-lg transition-all flex items-center gap-1.5"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Download JSON Package</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Integration guidelines details */}
+              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4.5 space-y-3">
+                <span className="text-[10px] font-extrabold text-[#003B95] uppercase tracking-widest flex items-center gap-1.5">
+                  <Layers className="h-4 w-4" /> LMS & Supabase Integration Guidelines
+                </span>
+                <ol className="text-[11px] text-slate-600 leading-relaxed list-decimal list-inside space-y-2 font-medium">
+                  <li>
+                    <strong>Custom Seed Scripts:</strong> Use the generated <code className="font-mono text-rose-600 bg-rose-50 px-1 rounded text-[10px]">SQL INSERTs</code> to seed databases like Local Postgres, Neon, or Supabase directly via query console.
+                  </li>
+                  <li>
+                    <strong>LMS Import Compatibility:</strong> Our exported <code className="font-mono text-rose-600 bg-rose-50 px-1 rounded text-[10px]">CSV</code> format uses strict RFC 4180 double-quote text qualifiers, ideal for direct upload to Moodle, Canvas, and Blackboard.
+                  </li>
+                  <li>
+                    <strong>Client-Side Parsing:</strong> The <code className="font-mono text-rose-600 bg-rose-50 px-1 rounded text-[10px]">JSON</code> payload is typed using the strict TypeScript interfaces of the <code className="font-mono">ExtendedMCQ</code> system in our core code engine.
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

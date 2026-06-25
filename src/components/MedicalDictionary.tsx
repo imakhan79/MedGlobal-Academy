@@ -150,7 +150,7 @@ Return strictly a JSON object with this format, do not write extra text:
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search term or ask AI for definition (e.g. 'Rhabdomyolysis')..."
+            placeholder="Search medical term (e.g. 'Rhabdomyolysis')..."
             className="w-full bg-[#FCFCFD] border border-[#E2E8F0] text-xs md:text-sm py-2.5 pl-9 pr-4 rounded-xl outline-none focus:border-[#003B95] focus:bg-white transition-all shadow-sm"
             id="dict-search-input"
           />
@@ -160,7 +160,7 @@ Return strictly a JSON object with this format, do not write extra text:
         {isSearchingAI && (
           <div className="mt-3 flex items-center gap-2 text-xs text-[#003B95] font-bold uppercase tracking-wider">
             <RefreshCw className="h-4 w-4 animate-spin text-[#003B95]" />
-            <span>Consulting clinical dictionaries with Gemini...</span>
+            <span>Consulting clinical reference databases...</span>
           </div>
         )}
 

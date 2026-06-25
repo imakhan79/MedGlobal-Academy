@@ -24,10 +24,10 @@ export default function StudyConsistencyGraph() {
     const cachedStreak = localStorage.getItem("medglobal-consistency-streak");
     const cachedHours = localStorage.getItem("medglobal-consistency-hours");
 
-    if (cachedStreak) setStreak(parseInt(cachedStreak));
-    if (cachedHours) setTotalHours(parseFloat(cachedHours));
+    if (cachedStreak && cachedStreak !== "undefined") setStreak(parseInt(cachedStreak));
+    if (cachedHours && cachedHours !== "undefined") setTotalHours(parseFloat(cachedHours));
 
-    if (cachedData) {
+    if (cachedData && cachedData !== "undefined") {
       try {
         setDays(JSON.parse(cachedData));
         return;

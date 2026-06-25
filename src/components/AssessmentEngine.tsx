@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { PRESEEDED_MCQS, VIRTUAL_PATIENTS, LICENSE_EXAMS, MEDICAL_SPECIALTIES } from "../data";
+import { CARDIOLOGY_USMLE1_Q_BANK } from "../data/clinicalQBank";
 import { MCQ, ClinicalCase } from "../types";
 import { CheckCircle2, XCircle, Award, RefreshCw, Send, ChevronRight, User, ShieldAlert, Activity, BookOpen, Clock, Heart, Sparkles, Layers, Lightbulb, Check, HelpCircle, Timer, Play, Pause, RotateCcw, AlertTriangle, Volume2, VolumeX, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -320,7 +321,8 @@ export default function AssessmentEngine() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           specialty: selectedSpecialty,
-          difficulty: difficulty
+          difficulty: difficulty,
+          currentQuestionText: currentMCQ?.question
         })
       });
       if (response.ok) {
@@ -334,16 +336,28 @@ export default function AssessmentEngine() {
     } catch (err) {
       // Fallback: pick a matching pre-seeded MCQ with matching difficulty & specialty
       const mappedDiff = mapDifficultyToSeed(difficulty);
-      const matches = PRESEEDED_MCQS.filter(
+      const combinedPool = [...PRESEEDED_MCQS, ...CARDIOLOGY_USMLE1_Q_BANK];
+      const matches = combinedPool.filter(
         q => q.specialty.toLowerCase() === selectedSpecialty.toLowerCase() && q.difficulty === mappedDiff
       );
-      const fallbackMatches = matches.length > 0 ? matches : PRESEEDED_MCQS.filter(q => q.specialty.toLowerCase() === selectedSpecialty.toLowerCase());
-      const fallback = (fallbackMatches.length > 0 ? fallbackMatches : PRESEEDED_MCQS)[Math.floor(Math.random() * (fallbackMatches.length > 0 ? fallbackMatches : PRESEEDED_MCQS).length)] || PRESEEDED_MCQS[0];
+      const fallbackMatches = matches.length > 0 ? matches : combinedPool.filter(q => q.specialty.toLowerCase() === selectedSpecialty.toLowerCase());
+      const finalPool = fallbackMatches.length > 0 ? fallbackMatches : combinedPool;
+
+      // Filter out the current question to prevent repetition if possible
+      const novelPool = finalPool.filter(q => q.question !== currentMCQ?.question);
+      const chosenPool = novelPool.length > 0 ? novelPool : finalPool;
+
+      const fallback = chosenPool[Math.floor(Math.random() * chosenPool.length)] || PRESEEDED_MCQS[0];
       setCurrentMCQ(fallback);
     } finally {
       setIsGenerating(false);
     }
   };
+
+  // Automatically fetch/update question when specialty or difficulty changes
+  useEffect(() => {
+    generateNewMCQ();
+  }, [selectedSpecialty, difficulty]);
 
   const submitMCQAnswer = () => {
     if (selectedAnswer === null) return;
@@ -357,7 +371,14 @@ export default function AssessmentEngine() {
     // Update specialty-based performance in localStorage
     try {
       const storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
-      const storedPerf = storedPerfStr ? JSON.parse(storedPerfStr) : {};
+      let storedPerf: Record<string, { correct: number; total: number }> = {};
+      try {
+        if (storedPerfStr && storedPerfStr !== "undefined") {
+          storedPerf = JSON.parse(storedPerfStr);
+        }
+      } catch (jsonErr) {
+        console.error("Failed to parse stored performance in submitMCQAnswer", jsonErr);
+      }
       const spec = currentMCQ.specialty || "General Medicine";
       if (!storedPerf[spec]) {
         storedPerf[spec] = { correct: 0, total: 0 };
@@ -936,7 +957,7 @@ export default function AssessmentEngine() {
                         {/* Explain with AI & Simulate Twin Trigger */}
                         <div className="pt-3 border-t border-[#BAE6FD]/60 mt-3 flex items-center justify-between flex-wrap gap-2">
                           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
-                            <Sparkles className="h-3.5 w-3.5 text-[#003B95] animate-pulse" />
+                            <Activity className="h-3.5 w-3.5 text-[#003B95] animate-pulse" />
                             <span>Want to practice this clinical scenario?</span>
                           </span>
                           <div className="flex gap-2">
@@ -966,8 +987,8 @@ export default function AssessmentEngine() {
                               }`}
                               id="btn-mcq-explain-ai"
                             >
-                              <Sparkles className="h-3.5 w-3.5" />
-                              <span>{showAIExplanation ? "Hide AI Breakdown" : "Explain with AI"}</span>
+                              <Lightbulb className="h-3.5 w-3.5" />
+                              <span>{showAIExplanation ? "Hide Breakdown" : "Detailed Breakdown"}</span>
                             </button>
                           </div>
                         </div>
@@ -987,10 +1008,10 @@ export default function AssessmentEngine() {
                               <div className="flex items-center justify-between pb-3 border-b border-[#F1F5F9]">
                                 <div className="flex items-center gap-2">
                                   <span className="p-1.5 bg-[#E0F2FE] rounded-lg text-[#0369A1]">
-                                    <Sparkles className="h-4 w-4 animate-pulse" />
+                                    <Lightbulb className="h-4 w-4" />
                                   </span>
                                   <div>
-                                    <h4 className="font-serif italic font-bold text-sm text-[#0F172A]">Gemini Personalized Tutor Analysis</h4>
+                                    <h4 className="font-serif italic font-bold text-sm text-[#0F172A]">Personalized Tutor Analysis</h4>
                                     <p className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mt-0.5">Custom analysis targeting your selected choice</p>
                                   </div>
                                 </div>
@@ -1224,8 +1245,8 @@ export default function AssessmentEngine() {
                             <div className="pt-3 border-t border-[#F1F5F9] mt-3">
                               <div className="flex items-center justify-between flex-wrap gap-2">
                                 <span className="text-[9px] text-slate-500 font-extrabold uppercase tracking-wider flex items-center gap-1.5">
-                                  <Sparkles className="h-3.5 w-3.5 text-[#003B95] animate-pulse" />
-                                  <span>Need personalized Gemini tutor breakdown?</span>
+                                  <Lightbulb className="h-3.5 w-3.5 text-[#003B95]" />
+                                  <span>Need personalized tutor breakdown?</span>
                                 </span>
                                 <button
                                   onClick={() => handleFlashcardAIExplain(getFilteredFlashcards()[Math.min(currentFlashcardIndex, getFilteredFlashcards().length - 1)])}
@@ -1236,8 +1257,8 @@ export default function AssessmentEngine() {
                                   }`}
                                   id="btn-flashcard-explain-ai"
                                 >
-                                  <Sparkles className="h-3.5 w-3.5" />
-                                  <span>{showFlashcardAIExplain ? "Hide Tutor Analysis" : "Explain with AI"}</span>
+                                  <Lightbulb className="h-3.5 w-3.5" />
+                                  <span>{showFlashcardAIExplain ? "Hide Breakdown" : "Tutor Breakdown"}</span>
                                 </button>
                               </div>
 

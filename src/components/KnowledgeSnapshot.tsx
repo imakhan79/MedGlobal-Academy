@@ -27,13 +27,20 @@ export default function KnowledgeSnapshot() {
   const loadStats = () => {
     try {
       let storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
-      if (!storedPerfStr) {
+      if (!storedPerfStr || storedPerfStr === "undefined") {
         // Automatically preseed with realistic initial history so student isn't staring at empty screen
         localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
         storedPerfStr = JSON.stringify(PRESEEDED_PERFORMANCE);
       }
       
-      const parsed = JSON.parse(storedPerfStr);
+      let parsed = PRESEEDED_PERFORMANCE;
+      try {
+        parsed = JSON.parse(storedPerfStr);
+      } catch (jsonErr) {
+        console.error("Corrupted local storage performance data, resetting.", jsonErr);
+        localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
+        parsed = PRESEEDED_PERFORMANCE;
+      }
       const list = Object.entries(parsed).map(([spec, s]: [string, any]) => {
         const correct = s.correct || 0;
         const total = s.total || 0;
@@ -68,7 +75,14 @@ export default function KnowledgeSnapshot() {
     try {
       // Re-load statistics from localStorage right before synthesizing
       let storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
-      const currentPerf = storedPerfStr ? JSON.parse(storedPerfStr) : PRESEEDED_PERFORMANCE;
+      let currentPerf = PRESEEDED_PERFORMANCE;
+      try {
+        if (storedPerfStr && storedPerfStr !== "undefined") {
+          currentPerf = JSON.parse(storedPerfStr);
+        }
+      } catch (e) {
+        console.error("Error parsing stored performance in generateSnapshot:", e);
+      }
 
       const response = await fetch("/api/knowledge-snapshot", {
         method: "POST",
@@ -108,7 +122,7 @@ export default function KnowledgeSnapshot() {
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 bg-[#003B95]/10 text-[#003B95] font-extrabold text-[9px] uppercase tracking-wider px-2.5 py-1 rounded-md border border-[#003B95]/15">
             <BrainCircuit className="h-3.5 w-3.5" />
-            <span>AI Diagnostic Engine</span>
+            <span>Clinical Diagnostic Engine</span>
           </div>
           <h3 className="text-lg md:text-xl font-serif italic font-bold text-slate-900 flex items-center gap-2">
             <span>Knowledge Snapshot</span>
@@ -197,16 +211,16 @@ export default function KnowledgeSnapshot() {
           </div>
         </div>
 
-        {/* Right pane: AI snapshot textual report */}
+        {/* Right pane: snapshot textual report */}
         <div className="lg:col-span-7 bg-slate-50/60 border border-slate-150 rounded-xl p-4 md:p-5 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-150">
               <h4 className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-widest flex items-center gap-1.5">
-                <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-                <span>AI Clinical Diagnosis Report</span>
+                <Activity className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                <span>Clinical Diagnosis Report</span>
               </h4>
               <span className="text-[8px] font-black uppercase tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded">
-                Gemini 3.5 Active
+                Diagnostic Engine Active
               </span>
             </div>
 

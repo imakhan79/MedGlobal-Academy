@@ -227,7 +227,7 @@ export default function App() {
               {[
                 { id: "dashboard", label: "Learning Portals", icon: Layers },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
-                { id: "ai", label: "AI Clinical Assistants", icon: Sparkles },
+                { id: "ai", label: "Clinical Assistants", icon: Activity },
                 { id: "research", label: "Research Academy", icon: FileText },
                 { id: "drugs", label: "Pharma Center", icon: Heart },
                 { id: "dictionary", label: "Medical Dictionary", icon: BookOpen },
@@ -288,12 +288,8 @@ export default function App() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
                   {/* Left Hero Content */}
                   <div className="lg:col-span-7 space-y-6">
-                    <div className="inline-flex items-center gap-2 bg-amber-400/10 border border-amber-400/30 text-amber-300 font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-widest shadow-xs">
-                      <Sparkles className="h-3 w-3 text-amber-400" />
-                      <span>Now with Gemini AI Clinical Insights</span>
-                    </div>
                     <h2 className="text-3xl md:text-5xl font-serif italic font-black leading-[1.1] tracking-tight">
-                      AI-Driven Clinical Simulations, Medical Training, & Research
+                      Interactive Clinical Simulations, Medical Training, & Research
                     </h2>
                     <p className="text-sm md:text-base text-slate-200/90 leading-relaxed max-w-xl font-medium font-sans">
                       Calibrate your clinical instincts with high-fidelity, peer-reviewed patient sandbox simulators. Seamlessly tailored for students, practitioners, faculty, and academic healthcare networks.

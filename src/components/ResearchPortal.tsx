@@ -177,8 +177,8 @@ The protocol will be conducted in strict compliance with the Declaration of Hels
         <div className="lg:col-span-5 p-4 md:p-6 bg-[#FCFCFD] space-y-5">
           <div className="space-y-1">
             <h3 className="font-serif italic font-bold text-[#0F172A] text-lg flex items-center gap-1.5">
-              <Sparkles className="h-5 w-5 text-[#003B95]" />
-              <span>AI Proposal Draft Generator</span>
+              <FileText className="h-5 w-5 text-[#003B95]" />
+              <span>Research Proposal Draft Generator</span>
             </h3>
             <p className="text-xs text-gray-500">Formulate and structure a publication-ready research protocol instantly.</p>
           </div>
@@ -229,7 +229,7 @@ The protocol will be conducted in strict compliance with the Declaration of Hels
               id="btn-generate-proposal"
             >
               {isGeneratingProposal ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-              <span>{isGeneratingProposal ? "Drafting with Gemini..." : "Generate Protocol Draft"}</span>
+              <span>{isGeneratingProposal ? "Drafting Protocol..." : "Generate Protocol Draft"}</span>
             </button>
           </form>
 

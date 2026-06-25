@@ -67,7 +67,7 @@ export default function DrugDirectory() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search or ask AI for a drug (e.g. 'Aspirin')..."
+              placeholder="Search for a drug (e.g. 'Aspirin')..."
               className="w-full bg-slate-50 border border-[#E2E8F0] text-xs md:text-sm py-3 pl-9 pr-4 rounded-xl outline-none focus:border-[#003B95] focus:bg-white transition-all"
               id="drug-search-input"
             />
@@ -93,7 +93,7 @@ export default function DrugDirectory() {
           {isSearchingGemini && (
             <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 flex items-center gap-2">
               <RefreshCw className="h-4 w-4 animate-spin text-[#003B95]" />
-              <span>Querying FDA and drug index with Gemini...</span>
+              <span>Querying FDA and drug index...</span>
             </div>
           )}
 

@@ -167,7 +167,14 @@ export default function InteractiveCaseStudy() {
   const recordStats = (isCorrect: boolean) => {
     try {
       const storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
-      const storedPerf = storedPerfStr ? JSON.parse(storedPerfStr) : {};
+      let storedPerf: Record<string, { correct: number; total: number }> = {};
+      try {
+        if (storedPerfStr && storedPerfStr !== "undefined") {
+          storedPerf = JSON.parse(storedPerfStr);
+        }
+      } catch (jsonErr) {
+        console.error("Failed to parse stored performance in recordStats", jsonErr);
+      }
       const spec = selectedSpecialty || caseData?.finalDiagnosis || "General Medicine";
       
       // Look for match in specialties to align names
@@ -300,8 +307,8 @@ export default function InteractiveCaseStudy() {
               onClick={() => { setCaseSource("ai"); }}
               className={`px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-widest rounded-lg transition-all cursor-pointer flex items-center gap-1 ${caseSource === "ai" ? "bg-white text-[#003B95] shadow-xs" : "text-[#64748B] hover:text-[#003B95]"}`}
             >
-              <Sparkles className="h-3 w-3 text-amber-500" />
-              <span>AI Case Generator</span>
+              <Activity className="h-3 w-3 text-blue-600 animate-pulse" />
+              <span>Dynamic Case Generator</span>
             </button>
           </div>
 
@@ -698,10 +705,10 @@ export default function InteractiveCaseStudy() {
 
             {/* Academic Synchronization Banner */}
             <div className="p-3 bg-[#E0F2FE]/40 border border-blue-100 rounded-xl flex items-start gap-2.5 text-[10px] text-slate-600 font-medium leading-relaxed">
-              <Sparkles className="h-4 w-4 text-[#003B95] shrink-0 mt-0.5" />
+              <Activity className="h-4 w-4 text-[#003B95] shrink-0 mt-0.5 animate-pulse" />
               <div>
                 <strong className="text-slate-800 font-bold uppercase tracking-wider block mb-0.5">Continuous Learning Integration:</strong>
-                Submitting a diagnostic decision or clinical plan in this portal will log study hours and update your clinical accuracy inside the **AI Knowledge Snapshot**.
+                Submitting a diagnostic decision or clinical plan in this portal will log study hours and update your clinical accuracy inside the **Knowledge Snapshot**.
               </div>
             </div>
           </div>
