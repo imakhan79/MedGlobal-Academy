@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { MEDICAL_SPECIALTIES } from "../data";
 import { MCQ, DrugProfile } from "../types";
-import { Users, FileText, DollarSign, PlusCircle, CheckCircle, UploadCloud, PieChart, Activity, TrendingUp, Cpu, RefreshCw } from "lucide-react";
+import { Users, FileText, DollarSign, PlusCircle, CheckCircle, UploadCloud, PieChart, Activity, TrendingUp, Cpu } from "lucide-react";
 
 interface AdminFacultyPanelProps {
   onAddCustomMCQ: (mcq: MCQ) => void;
@@ -10,26 +10,6 @@ interface AdminFacultyPanelProps {
 
 export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: AdminFacultyPanelProps) {
   const [activeSubTab, setActiveSubTab] = useState<"metrics" | "add-mcq" | "add-drug">("metrics");
-  const [metrics, setMetrics] = useState<{
-    activeStudents: number;
-    monthlyMRR: string;
-    licensedUniversities: number;
-    aiEngineCalls: string;
-    customMCQs: number;
-    customDrugs: number;
-  } | null>(null);
-  const [metricsLoading, setMetricsLoading] = useState(true);
-
-  useEffect(() => {
-    setMetricsLoading(true);
-    fetch("/api/platform-metrics")
-      .then(res => res.json())
-      .then(data => {
-        setMetrics(data);
-        setMetricsLoading(false);
-      })
-      .catch(() => setMetricsLoading(false));
-  }, []);
 
   // Custom MCQ Form State
   const [mcqQuestion, setMcqQuestion] = useState("");
@@ -142,11 +122,7 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
               </div>
               <div>
                 <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">Active Students</div>
-                {metricsLoading ? (
-                  <div className="h-5 w-20 bg-slate-200 animate-pulse rounded mt-1" />
-                ) : (
-                  <div className="text-xl font-extrabold text-[#0F172A] font-serif">{(metrics?.activeStudents ?? 142508).toLocaleString()}</div>
-                )}
+                <div className="text-xl font-extrabold text-[#0F172A] font-serif">142,508</div>
               </div>
             </div>
             <div className="bg-white border border-[#E2E8F0] p-4 rounded-xl flex items-center gap-3.5 shadow-sm">
@@ -155,11 +131,7 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
               </div>
               <div>
                 <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">Monthly MRR</div>
-                {metricsLoading ? (
-                  <div className="h-5 w-20 bg-slate-200 animate-pulse rounded mt-1" />
-                ) : (
-                  <div className="text-xl font-extrabold text-[#0F172A] font-serif">{metrics?.monthlyMRR ?? "$64,280"}</div>
-                )}
+                <div className="text-xl font-extrabold text-[#0F172A] font-serif">$64,280</div>
               </div>
             </div>
             <div className="bg-white border border-[#E2E8F0] p-4 rounded-xl flex items-center gap-3.5 shadow-sm">
@@ -168,11 +140,7 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
               </div>
               <div>
                 <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">Licensed Universities</div>
-                {metricsLoading ? (
-                  <div className="h-5 w-20 bg-slate-200 animate-pulse rounded mt-1" />
-                ) : (
-                  <div className="text-xl font-bold text-[#0F172A] font-serif">{metrics?.licensedUniversities ?? 48} Partner Colleges</div>
-                )}
+                <div className="text-xl font-bold text-[#0F172A] font-serif">48 Partner Colleges</div>
               </div>
             </div>
             <div className="bg-white border border-[#E2E8F0] p-4 rounded-xl flex items-center gap-3.5 shadow-sm">
@@ -181,34 +149,10 @@ export default function AdminFacultyPanel({ onAddCustomMCQ, onAddCustomDrug }: A
               </div>
               <div>
                 <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">AI Engines Calls</div>
-                {metricsLoading ? (
-                  <div className="h-5 w-20 bg-slate-200 animate-pulse rounded mt-1" />
-                ) : (
-                  <div className="text-xl font-bold text-[#0F172A] font-serif">{metrics?.aiEngineCalls ?? "1.2 Million / Mo"}</div>
-                )}
+                <div className="text-xl font-bold text-[#0F172A] font-serif">1.2 Million / Mo</div>
               </div>
             </div>
           </div>
-
-          {/* Live Q-Bank content stats */}
-          {metrics && (metrics.customMCQs > 0 || metrics.customDrugs > 0) && (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl flex items-center gap-3">
-                <PlusCircle className="h-5 w-5 text-[#003B95]" />
-                <div>
-                  <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">Faculty MCQs Published</div>
-                  <div className="text-xl font-extrabold text-[#003B95] font-serif">{metrics.customMCQs}</div>
-                </div>
-              </div>
-              <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl flex items-center gap-3">
-                <Activity className="h-5 w-5 text-emerald-700" />
-                <div>
-                  <div className="text-[9px] text-[#64748B] font-extrabold uppercase tracking-wider">Drugs Registered</div>
-                  <div className="text-xl font-extrabold text-emerald-700 font-serif">{metrics.customDrugs}</div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Users List & Lectures Log */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

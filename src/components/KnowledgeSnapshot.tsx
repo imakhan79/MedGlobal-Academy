@@ -99,22 +99,6 @@ export default function KnowledgeSnapshot() {
     localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
     loadStats();
     generateSnapshot();
-
-    // Push to Supabase if logged in
-    const storedUserStr = localStorage.getItem("medglobal-user");
-    if (storedUserStr) {
-      const user = JSON.parse(storedUserStr);
-      if (user && user.email) {
-        fetch("/api/user-performance", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: user.email,
-            performanceData: PRESEEDED_PERFORMANCE
-          })
-        }).catch(err => console.error("Failed to sync performance reset to DB:", err));
-      }
-    }
   };
 
   return (

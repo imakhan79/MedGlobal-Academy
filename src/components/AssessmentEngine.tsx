@@ -4,6 +4,7 @@ import { MCQ, ClinicalCase } from "../types";
 import { CheckCircle2, XCircle, Award, RefreshCw, Send, ChevronRight, User, ShieldAlert, Activity, BookOpen, Clock, Heart, Sparkles, Layers, Lightbulb, Check, HelpCircle, Timer, Play, Pause, RotateCcw, AlertTriangle, Volume2, VolumeX, SlidersHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import InteractiveCaseStudy from "./InteractiveCaseStudy";
+import BioTwinSimulator from "./BioTwinSimulator";
 
 const difficulties: Array<"Easy" | "Intermediate" | "Board-Level"> = ["Easy", "Intermediate", "Board-Level"];
 
@@ -25,6 +26,47 @@ export default function AssessmentEngine() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [stats, setStats] = useState({ correct: 1, total: 2 });
+
+  // BioTwin Simulation States
+  const [customTwinCase, setCustomTwinCase] = useState<any>(null);
+  const [isGeneratingTwin, setIsGeneratingTwin] = useState<boolean>(false);
+
+  const handleSimulateClinicalTwin = async () => {
+    setIsGeneratingTwin(true);
+    try {
+      const response = await fetch("/api/clinical-twin-simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          actionType: "generate",
+          mcqQuestion: currentMCQ.question,
+          mcqRationale: currentMCQ.rationale,
+          examBoard: selectedExam === "usmle1" ? "USMLE" : selectedExam === "fcps1" ? "FCPS" : "PLAB",
+          difficulty: difficulty === "Easy" ? "Easy" : difficulty === "Intermediate" ? "Medium" : "Hard",
+          department: currentMCQ.specialty || selectedSpecialty
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.case) {
+          setCustomTwinCase(data.case);
+          setActiveTab("osce");
+          return;
+        }
+      }
+      throw new Error();
+    } catch (err) {
+      const { CLINICAL_TWIN_PRESETS } = await import("../data/clinicalTwinCases");
+      const matched = CLINICAL_TWIN_PRESETS.find(
+        p => p.department.toLowerCase() === (currentMCQ.specialty || selectedSpecialty).toLowerCase()
+      ) || CLINICAL_TWIN_PRESETS[0];
+      setCustomTwinCase(matched);
+      setActiveTab("osce");
+    } finally {
+      setIsGeneratingTwin(false);
+    }
+  };
 
   // Flashcards & Spaced Repetition State
   const [isFlashcardMode, setIsFlashcardMode] = useState(false);
@@ -324,22 +366,6 @@ export default function AssessmentEngine() {
       storedPerf[spec].total += 1;
       localStorage.setItem("medglobal-mcq-performance", JSON.stringify(storedPerf));
       window.dispatchEvent(new Event("storage"));
-
-      // Push to Supabase if logged in
-      const storedUserStr = localStorage.getItem("medglobal-user");
-      if (storedUserStr) {
-        const user = JSON.parse(storedUserStr);
-        if (user && user.email) {
-          fetch("/api/user-performance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              performanceData: storedPerf
-            })
-          }).catch(err => console.error("Failed to sync performance update to DB:", err));
-        }
-      }
     } catch (e) {
       console.error("Error updating specialty performance history:", e);
     }
@@ -666,7 +692,7 @@ export default function AssessmentEngine() {
           className={`px-4 py-2.5 text-[10px] md:text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${activeTab === "osce" ? "bg-[#003B95] text-white shadow-sm" : "text-[#64748B] hover:bg-slate-100 hover:text-[#0F172A]"}`}
           id="btn-osce-simulator"
         >
-          OSCE Clinical Case Simulator
+          BioTwin Patient Twin OS
         </button>
         <button
           onClick={() => setActiveTab("cases")}
@@ -907,24 +933,43 @@ export default function AssessmentEngine() {
                           {currentMCQ.rationale}
                         </p>
 
-                        {/* Explain with AI Trigger */}
+                        {/* Explain with AI & Simulate Twin Trigger */}
                         <div className="pt-3 border-t border-[#BAE6FD]/60 mt-3 flex items-center justify-between flex-wrap gap-2">
                           <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center gap-1">
                             <Sparkles className="h-3.5 w-3.5 text-[#003B95] animate-pulse" />
-                            <span>Need a personalized clinical breakdown?</span>
+                            <span>Want to practice this clinical scenario?</span>
                           </span>
-                          <button
-                            onClick={handleExplainWithAI}
-                            className={`text-[10px] uppercase tracking-widest font-extrabold px-3 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm ${
-                              showAIExplanation
-                                ? "bg-[#003B95] text-white border-[#003B95]"
-                                : "bg-white hover:bg-slate-50 text-[#003B95] border-[#E2E8F0]"
-                            }`}
-                            id="btn-mcq-explain-ai"
-                          >
-                            <Sparkles className="h-3.5 w-3.5" />
-                            <span>{showAIExplanation ? "Hide AI Breakdown" : "Explain with AI"}</span>
-                          </button>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={handleSimulateClinicalTwin}
+                              disabled={isGeneratingTwin}
+                              className="text-[10px] uppercase tracking-widest font-extrabold px-3 py-1.5 rounded-lg border bg-gradient-to-r from-[#003B95] to-blue-900 text-white border-[#003B95] hover:opacity-90 transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              {isGeneratingTwin ? (
+                                <>
+                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                                  <span>Synthesizing Twin...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Activity className="h-3.5 w-3.5 animate-pulse" />
+                                  <span>🔬 Simulate Patient Twin</span>
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={handleExplainWithAI}
+                              className={`text-[10px] uppercase tracking-widest font-extrabold px-3 py-1.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                                showAIExplanation
+                                  ? "bg-[#003B95] text-white border-[#003B95]"
+                                  : "bg-white hover:bg-slate-50 text-[#003B95] border-[#E2E8F0]"
+                              }`}
+                              id="btn-mcq-explain-ai"
+                            >
+                              <Sparkles className="h-3.5 w-3.5" />
+                              <span>{showAIExplanation ? "Hide AI Breakdown" : "Explain with AI"}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -1284,192 +1329,10 @@ export default function AssessmentEngine() {
         </div>
       )}
 
-      {/* Portal 2: OSCE Virtual Patient */}
+      {/* Portal 2: OSCE Virtual Patient / BioTwin Simulator */}
       {activeTab === "osce" && (
-        <div className="p-4 md:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6" id="osce-portal-content">
-          {/* Left Panel: Case Selection & Vitals */}
-          <div className="space-y-4">
-            <h3 className="font-serif italic font-bold text-[#003B95] text-lg flex items-center gap-2">
-              <Activity className="h-4 w-4 text-[#003B95]" />
-              <span>Select Patient Station</span>
-            </h3>
-            <div className="space-y-2">
-              {VIRTUAL_PATIENTS.map(p => {
-                const isSelectedCase = selectedCase.id === p.id;
-                return (
-                  <motion.button
-                    key={p.id}
-                    whileHover={{ scale: 1.01, x: 2 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => handleCaseChange(p)}
-                    className={`w-full text-left p-3.5 rounded-xl border text-sm transition-all cursor-pointer ${isSelectedCase ? "bg-[#E0F2FE]/40 border-[#003B95] text-slate-900 shadow-sm font-medium ring-1 ring-[#003B95]/20" : "bg-white border-[#E2E8F0] hover:border-slate-300 text-[#64748B]"}`}
-                  >
-                    <div className="font-serif font-bold text-[#0F172A] text-base flex items-center justify-between">
-                      <span>{p.patientName}</span>
-                      {isSelectedCase && <span className="w-2 h-2 rounded-full bg-[#003B95] animate-pulse" />}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">{p.age} y/o {p.gender} • {p.occupation}</div>
-                    <div className="text-xs text-[#003B95] mt-2 font-bold italic truncate">"{p.chiefComplaint}"</div>
-                  </motion.button>
-                );
-              })}
-            </div>
-
-            {/* Vitals Panel */}
-            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-3">
-              <h4 className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-widest">Patient Vitals & Examination</h4>
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="bg-white p-2.5 rounded-lg border border-[#E2E8F0] text-center">
-                  <div className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-wider">Blood Pressure</div>
-                  <div className="text-sm font-bold text-slate-800 mt-1">{selectedCase.vitals.bp} <span className="text-[10px] text-gray-500 font-normal">mmHg</span></div>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-[#E2E8F0] text-center">
-                  <div className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-wider">Heart Rate</div>
-                  <div className="text-sm font-bold text-red-600 flex items-center justify-center gap-1 mt-1">
-                    <Heart className="h-3 w-3 fill-red-500 stroke-none animate-pulse" />
-                    <span>{selectedCase.vitals.hr} <span className="text-[10px] text-gray-500 font-normal">bpm</span></span>
-                  </div>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-[#E2E8F0] text-center">
-                  <div className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-wider">SpO2 (Oxygen)</div>
-                  <div className={`text-sm font-bold mt-1 ${selectedCase.vitals.spo2 < 92 ? "text-amber-600" : "text-emerald-600"}`}>{selectedCase.vitals.spo2}%</div>
-                </div>
-                <div className="bg-white p-2.5 rounded-lg border border-[#E2E8F0] text-center">
-                  <div className="text-[9px] text-[#94A3B8] font-bold uppercase tracking-wider">Temperature</div>
-                  <div className="text-sm font-bold text-slate-800 mt-1">{selectedCase.vitals.temp}</div>
-                </div>
-              </div>
-              <div className="text-xs bg-white p-3 rounded-lg border border-[#E2E8F0] leading-relaxed text-slate-600">
-                <strong className="font-bold text-[#0F172A] uppercase tracking-wider text-[9px] block mb-1">Physical Exam:</strong> {selectedCase.physicalExam}
-              </div>
-              {selectedCase.ecgOrLabSnippet && (
-                <div className="bg-[#FFFBEB] text-[#78350F] border border-[#FDE68A] p-3 rounded-lg text-xs leading-relaxed font-mono">
-                  <strong className="font-bold uppercase tracking-wider text-[9px] block mb-1">Investigation Indicator:</strong>
-                  {selectedCase.ecgOrLabSnippet}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Center & Right Panel combined for Interactive Chat and OSCE Goals */}
-          <div className="lg:col-span-2 flex flex-col h-[550px] bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl overflow-hidden">
-            {/* OSCE Checklist Progress Header */}
-            <div className="bg-[#003B95] text-white p-4 flex items-center justify-between">
-              <div>
-                <h4 className="text-[9px] font-extrabold text-sky-200 uppercase tracking-widest">Interactive OSCE Station</h4>
-                <div className="text-base font-serif italic font-bold">{selectedCase.patientName} - Diagnostic Case</div>
-              </div>
-              <button
-                onClick={() => setShowOSCEResults(true)}
-                className="bg-white hover:bg-slate-100 text-[#003B95] font-bold text-[10px] uppercase tracking-widest py-2 px-4 rounded-full transition-all shadow-sm"
-                id="btn-osce-evaluate"
-              >
-                Conclude Case
-              </button>
-            </div>
-
-            {/* Main Chat Pane */}
-            {!showOSCEResults ? (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {patientChat.map((msg, idx) => (
-                    <div key={idx} className={`flex items-start gap-2.5 ${msg.role === "doctor" ? "flex-row-reverse" : ""}`}>
-                      <div className={`p-2 rounded-full text-[9px] font-bold uppercase shrink-0 ${msg.role === "doctor" ? "bg-[#003B95]/10 text-[#003B95]" : "bg-teal-50 text-teal-700 border border-teal-100"}`}>
-                        {msg.role === "doctor" ? "DR" : "PT"}
-                      </div>
-                      <div className={`p-3.5 rounded-xl text-sm max-w-[80%] shadow-sm leading-relaxed ${msg.role === "doctor" ? "bg-[#003B95] text-white rounded-tr-none" : "bg-white text-slate-800 rounded-tl-none border border-[#E2E8F0]"}`}>
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-                  {isPatientThinking && (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 italic pl-8">
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      <span>Patient responding...</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* OSCE Station Target Tasks tracker inline */}
-                <div className="p-3 bg-white border-t border-[#E2E8F0] flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[9px] font-bold text-[#64748B] uppercase tracking-widest">Clinical Competencies Checked:</span>
-                  <div className="flex gap-2">
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded ${completedSteps.includes("pain_assess") ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
-                      Pain Hist
-                    </span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded ${completedSteps.includes("history") ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
-                      Past Med Hist
-                    </span>
-                    <span className={`text-[9px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded ${completedSteps.includes("vitals") ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
-                      Check Vitals
-                    </span>
-                  </div>
-                </div>
-
-                {/* Patient Chat Input Form */}
-                <form onSubmit={handlePatientChatSubmit} className="p-3 bg-white border-t border-[#E2E8F0] flex gap-2">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask patient (e.g. 'Do you have high blood pressure?')..."
-                    className="flex-1 bg-slate-50 border border-[#E2E8F0] text-sm py-2.5 px-4 rounded-lg outline-none focus:border-[#003B95] font-medium"
-                    id="osce-chat-input"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!chatInput.trim() || isPatientThinking}
-                    className="bg-[#003B95] hover:bg-blue-950 disabled:opacity-50 text-white font-bold text-[10px] uppercase tracking-widest px-5 rounded-lg transition-all"
-                  >
-                    Ask Patient
-                  </button>
-                </form>
-              </div>
-            ) : (
-              /* Evaluation Results Screen */
-              <div className="flex-1 overflow-y-auto p-5 md:p-6 bg-white space-y-4">
-                <div className="text-center space-y-2">
-                  <Award className="h-12 w-12 text-[#003B95] mx-auto" />
-                  <h3 className="text-lg font-serif italic font-bold text-[#0F172A]">Clinical Competence Appraisal Report</h3>
-                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">OSCE Diagnostic Station Evaluation</p>
-                </div>
-
-                <div className="space-y-3.5 border-t border-[#E2E8F0] pt-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-[#003B95] uppercase tracking-wider mb-1">Station Diagnosis:</h4>
-                    <p className="text-xs text-slate-700 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0] font-medium leading-relaxed">{selectedCase.finalDiagnosis}</p>
-                  </div>
-
-                  <div>
-                    <h4 className="text-xs font-bold text-[#003B95] uppercase tracking-wider mb-1">Management Plan:</h4>
-                    <p className="text-xs text-slate-700 bg-[#F8FAFC] p-3 rounded-lg border border-[#E2E8F0] font-medium leading-relaxed">{selectedCase.correctManagement}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2.5 mt-2">
-                    <div className="border border-[#E2E8F0] p-3 rounded-lg text-center bg-[#F8FAFC]">
-                      <div className="text-[9px] text-[#94A3B8] uppercase font-bold tracking-wider">Milestones Completed</div>
-                      <div className="text-2xl font-bold text-slate-800 mt-1">{completedSteps.length} / 3</div>
-                    </div>
-                    <div className="border border-[#E2E8F0] p-3 rounded-lg text-center bg-[#F8FAFC]">
-                      <div className="text-[9px] text-[#94A3B8] uppercase font-bold tracking-wider">Evaluation Rating</div>
-                      <div className="text-sm font-bold text-[#003B95] uppercase tracking-wider mt-2">
-                        {completedSteps.length === 3 ? "Superior (Pass)" : completedSteps.length >= 1 ? "Borderline Pass" : "Unsatisfactory"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 flex justify-center">
-                  <button
-                    onClick={() => handleCaseChange(selectedCase)}
-                    className="bg-slate-900 hover:bg-black text-white font-bold text-xs uppercase tracking-widest py-3 px-6 rounded-full transition-all"
-                  >
-                    Reset Station
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+        <div className="p-4 md:p-6" id="osce-portal-content">
+          <BioTwinSimulator customCase={customTwinCase} onClearCustomCase={() => setCustomTwinCase(null)} />
         </div>
       )}
 

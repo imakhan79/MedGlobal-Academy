@@ -185,22 +185,6 @@ export default function InteractiveCaseStudy() {
       
       // Dispatch storage event to alert KnowledgeSnapshot
       window.dispatchEvent(new Event("storage"));
-
-      // Push to Supabase if logged in
-      const storedUserStr = localStorage.getItem("medglobal-user");
-      if (storedUserStr) {
-        const user = JSON.parse(storedUserStr);
-        if (user && user.email) {
-          fetch("/api/user-performance", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: user.email,
-              performanceData: storedPerf
-            })
-          }).catch(err => console.error("Failed to sync performance update to DB:", err));
-        }
-      }
     } catch (e) {
       console.error(e);
     }

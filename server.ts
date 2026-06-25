@@ -3,7 +3,6 @@ import path from "path";
 import dotenv from "dotenv";
 import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
-import { createClient } from "@supabase/supabase-js";
 
 dotenv.config();
 
@@ -11,54 +10,6 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-
-// Initialize Supabase Client
-const supabaseUrl = process.env.SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-let supabase: any = null;
-let isSupabaseActive = false;
-
-if (supabaseUrl && supabaseServiceKey && supabaseUrl !== "MY_SUPABASE_URL") {
-  try {
-    supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        persistSession: false
-      }
-    });
-    // Connection test query
-    supabase.from("study_rooms").select("id").limit(1).then(({ error }: any) => {
-      if (error && (error.code === "ENOTFOUND" || error.message?.includes("fetch failed"))) {
-        console.warn("Supabase connection test failed. Falling back to local in-memory simulation mode.");
-        isSupabaseActive = false;
-      } else {
-        console.log("Supabase connection successfully established!");
-        isSupabaseActive = true;
-      }
-    }).catch(() => {
-      console.warn("Supabase connection failed on startup. Falling back to local in-memory simulation mode.");
-      isSupabaseActive = false;
-    });
-  } catch (err) {
-    console.error("Failed to initialize Supabase client:", err);
-  }
-} else {
-  console.log("Supabase credentials not configured in .env. Running in offline/simulation mode.");
-}
-
-// Helper wrapper to run database queries with automatic simulation fallbacks
-async function runWithSupabase<T>(dbQuery: () => Promise<T>, fallback: () => Promise<T> | T): Promise<T> {
-  if (!supabase || !isSupabaseActive) {
-    return typeof fallback === "function" ? await fallback() : fallback;
-  }
-  try {
-    const result = await dbQuery();
-    return result;
-  } catch (error) {
-    console.warn("Supabase database error, falling back to local simulation:", error);
-    return typeof fallback === "function" ? await fallback() : fallback;
-  }
-}
-
 
 // Lazy-initialize Gemini SDK to prevent crashes if key is missing on startup
 let aiClient: GoogleGenAI | null = null;
@@ -570,165 +521,6 @@ Ensure the tone is supportive, highly intellectual, and clinically precise. Keep
   }
 });
 
-// Custom MCQs Database Endpoints
-app.get("/api/custom-mcqs", async (req, res) => {
-  const customList = await runWithSupabase(async () => {
-    const { data, error } = await supabase
-      .from("custom_mcqs")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    // Map database columns to camelCase expected by client
-    return (data || []).map((item: any) => ({
-      question: item.question,
-      options: item.options,
-      correctAnswer: item.correct_answer,
-      rationale: item.rationale,
-      difficulty: item.difficulty,
-      specialty: item.specialty
-    }));
-  }, () => []);
-
-  res.json(customList);
-});
-
-app.post("/api/custom-mcqs", async (req, res) => {
-  const { question, options, correctAnswer, rationale, difficulty, specialty } = req.body;
-  if (!question || !options || correctAnswer === undefined || !rationale || !difficulty || !specialty) {
-    return res.status(400).json({ error: "Missing required MCQ fields." });
-  }
-
-  const success = await runWithSupabase(async () => {
-    const { error } = await supabase
-      .from("custom_mcqs")
-      .insert({
-        question,
-        options,
-        correct_answer: correctAnswer,
-        rationale,
-        difficulty,
-        specialty
-      });
-    if (error) throw error;
-    return true;
-  }, () => true);
-
-  res.json({ success });
-});
-
-// Custom Drugs Database Endpoints
-app.get("/api/custom-drugs", async (req, res) => {
-  const customList = await runWithSupabase(async () => {
-    const { data, error } = await supabase
-      .from("custom_drugs")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    // Map database columns to camelCase
-    return (data || []).map((item: any) => ({
-      genericName: item.generic_name,
-      brandName: item.brand_name,
-      manufacturer: item.manufacturer,
-      drugClass: item.drug_class,
-      indications: item.indications,
-      contraindications: item.contraindications,
-      sideEffects: item.side_effects,
-      drugInteractions: item.drug_interactions,
-      dosage: item.dosage,
-      pregnancyCategory: item.pregnancy_category,
-      lactationSafety: item.lactation_safety,
-      fdaStatus: item.fda_status
-    }));
-  }, () => []);
-
-  res.json(customList);
-});
-
-app.post("/api/custom-drugs", async (req, res) => {
-  const {
-    genericName,
-    brandName,
-    manufacturer,
-    drugClass,
-    indications,
-    contraindications,
-    sideEffects,
-    drugInteractions,
-    dosage,
-    pregnancyCategory,
-    lactationSafety,
-    fdaStatus
-  } = req.body;
-
-  if (!genericName || !brandName || !manufacturer || !drugClass) {
-    return res.status(400).json({ error: "Missing required Drug fields." });
-  }
-
-  const success = await runWithSupabase(async () => {
-    const { error } = await supabase
-      .from("custom_drugs")
-      .insert({
-        generic_name: genericName,
-        brand_name: brandName,
-        manufacturer,
-        drug_class: drugClass,
-        indications: indications || "",
-        contraindications: contraindications || "",
-        side_effects: sideEffects || "",
-        drug_interactions: drugInteractions || "",
-        dosage: dosage || "",
-        pregnancy_category: pregnancyCategory || "",
-        lactation_safety: lactationSafety || "",
-        fda_status: fdaStatus || ""
-      });
-    if (error) throw error;
-    return true;
-  }, () => true);
-
-  res.json({ success });
-});
-
-// User Performance Endpoints
-app.get("/api/user-performance", async (req, res) => {
-  const { email } = req.query;
-  if (!email) {
-    return res.status(400).json({ error: "Missing email parameter." });
-  }
-
-  const data = await runWithSupabase(async () => {
-    const { data, error } = await supabase
-      .from("user_performance")
-      .select("performance_data")
-      .eq("email", email)
-      .maybeSingle();
-    if (error) throw error;
-    return data ? data.performance_data : null;
-  }, () => null);
-
-  res.json({ performanceData: data });
-});
-
-app.post("/api/user-performance", async (req, res) => {
-  const { email, performanceData } = req.body;
-  if (!email || !performanceData) {
-    return res.status(400).json({ error: "Missing email or performanceData." });
-  }
-
-  const success = await runWithSupabase(async () => {
-    const { error } = await supabase
-      .from("user_performance")
-      .upsert({
-        email,
-        performance_data: performanceData,
-        updated_at: new Date().toISOString()
-      }, { onConflict: "email" });
-    if (error) throw error;
-    return true;
-  }, () => true);
-
-  res.json({ success });
-});
-
 interface RoomPeer {
   id: string;
   name: string;
@@ -840,56 +632,6 @@ function broadcastToRoom(roomId: string, data: any) {
   });
 }
 
-// Helper to construct a complete Room state from Supabase database or local memory fallback
-async function getRoomState(roomId: string): Promise<StudyRoom | null> {
-  return await runWithSupabase(async () => {
-    // 1. Fetch room
-    const { data: roomData, error: roomErr } = await supabase
-      .from("study_rooms")
-      .select("*")
-      .eq("id", roomId)
-      .maybeSingle();
-    
-    if (roomErr) throw roomErr;
-    if (!roomData) return null;
-
-    // 2. Fetch peers
-    const { data: peersData, error: peersErr } = await supabase
-      .from("room_peers")
-      .select("*")
-      .eq("room_id", roomId);
-    if (peersErr) throw peersErr;
-
-    // 3. Fetch chat history
-    const { data: chatData, error: chatErr } = await supabase
-      .from("room_messages")
-      .select("*")
-      .eq("room_id", roomId)
-      .order("created_at", { ascending: true });
-    if (chatErr) throw chatErr;
-
-    return {
-      id: roomData.id,
-      currentMcq: roomData.current_mcq,
-      questionIndex: roomData.question_index,
-      peers: (peersData || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        avatarColor: p.avatar_color,
-        selectedOption: p.selected_option
-      })),
-      chatHistory: (chatData || []).map((c: any) => ({
-        sender: c.sender,
-        content: c.content,
-        timestamp: c.timestamp,
-        avatarColor: c.avatar_color
-      }))
-    };
-  }, async () => {
-    return studyRooms.get(roomId) || null;
-  });
-}
-
 // 1. Create Room
 app.post("/api/study-rooms/create", async (req, res) => {
   const { hostName, avatarColor } = req.body;
@@ -902,68 +644,29 @@ app.post("/api/study-rooms/create", async (req, res) => {
   };
 
   const initialMcq = await getNewQuestionForRoom();
-  const chatMsg = {
-    sender: "System",
-    content: `${hostPeer.name} initialized this collaborative study room. Share the session ID with peers!`,
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    avatarColor: "#64748B"
-  };
-
   const newRoom: StudyRoom = {
     id: roomId,
     currentMcq: initialMcq,
     peers: [hostPeer],
-    chatHistory: [chatMsg],
+    chatHistory: [{
+      sender: "System",
+      content: `${hostPeer.name} initialized this collaborative study room. Share the session ID with peers!`,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      avatarColor: "#64748B"
+    }],
     questionIndex: 1
   };
 
-  await runWithSupabase(async () => {
-    // Insert room
-    const { error: roomErr } = await supabase
-      .from("study_rooms")
-      .insert({
-        id: roomId,
-        current_mcq: initialMcq,
-        question_index: 1
-      });
-    if (roomErr) throw roomErr;
-
-    // Insert host peer
-    const { error: peerErr } = await supabase
-      .from("room_peers")
-      .insert({
-        id: hostPeer.id,
-        room_id: roomId,
-        name: hostPeer.name,
-        avatar_color: hostPeer.avatarColor,
-        selected_option: null
-      });
-    if (peerErr) throw peerErr;
-
-    // Insert initial system message
-    const { error: msgErr } = await supabase
-      .from("room_messages")
-      .insert({
-        room_id: roomId,
-        sender: chatMsg.sender,
-        content: chatMsg.content,
-        avatar_color: chatMsg.avatarColor,
-        timestamp: chatMsg.timestamp
-      });
-    if (msgErr) throw msgErr;
-  }, () => {
-    studyRooms.set(roomId, newRoom);
-  });
-
+  studyRooms.set(roomId, newRoom);
   res.json({ roomId, peerId: hostPeer.id, room: newRoom });
 });
 
 // 2. Join Room
-app.post("/api/study-rooms/:roomId/join", async (req, res) => {
+app.post("/api/study-rooms/:roomId/join", (req, res) => {
   const { roomId } = req.params;
   const { name, avatarColor } = req.body;
 
-  const room = await getRoomState(roomId);
+  const room = studyRooms.get(roomId);
   if (!room) {
     return res.status(404).json({ error: "Virtual study room session not found." });
   }
@@ -975,58 +678,52 @@ app.post("/api/study-rooms/:roomId/join", async (req, res) => {
     selectedOption: null
   };
 
-  const systemMsg = {
+  room.peers.push(newPeer);
+  room.chatHistory.push({
     sender: "System",
     content: `${newPeer.name} joined the room. Ready for collaborative diagnostics!`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     avatarColor: "#64748B"
-  };
-
-  room.peers.push(newPeer);
-  room.chatHistory.push(systemMsg);
-
-  await runWithSupabase(async () => {
-    // Insert peer
-    const { error: peerErr } = await supabase
-      .from("room_peers")
-      .insert({
-        id: newPeer.id,
-        room_id: roomId,
-        name: newPeer.name,
-        avatar_color: newPeer.avatarColor,
-        selected_option: null
-      });
-    if (peerErr) throw peerErr;
-
-    // Insert message
-    const { error: msgErr } = await supabase
-      .from("room_messages")
-      .insert({
-        room_id: roomId,
-        sender: systemMsg.sender,
-        content: systemMsg.content,
-        avatar_color: systemMsg.avatarColor,
-        timestamp: systemMsg.timestamp
-      });
-    if (msgErr) throw msgErr;
-  }, () => {
-    const localRoom = studyRooms.get(roomId);
-    if (localRoom) {
-      localRoom.peers.push(newPeer);
-      localRoom.chatHistory.push(systemMsg);
-    }
   });
 
   res.json({ peerId: newPeer.id, room });
   broadcastToRoom(roomId, { type: "sync", room });
 });
 
-// 3. Peer select/submit option
-app.post("/api/study-rooms/:roomId/submit-answer", async (req, res) => {
+// 3. SSE Stream endpoint
+app.get("/api/study-rooms/:roomId/stream", (req, res) => {
+  const { roomId } = req.params;
+  
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  if (!sseClients.has(roomId)) {
+    sseClients.set(roomId, []);
+  }
+  sseClients.get(roomId)!.push(res);
+
+  // Send initial ping to establish
+  res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+
+  req.on("close", () => {
+    const clients = sseClients.get(roomId) || [];
+    const filtered = clients.filter(c => c !== res);
+    if (filtered.length === 0) {
+      sseClients.delete(roomId);
+    } else {
+      sseClients.set(roomId, filtered);
+    }
+  });
+});
+
+// 4. Peer select/submit option
+app.post("/api/study-rooms/:roomId/submit-answer", (req, res) => {
   const { roomId } = req.params;
   const { peerId, optionIndex } = req.body;
 
-  const room = await getRoomState(roomId);
+  const room = studyRooms.get(roomId);
   if (!room) {
     return res.status(404).json({ error: "Study room not found." });
   }
@@ -1036,40 +733,11 @@ app.post("/api/study-rooms/:roomId/submit-answer", async (req, res) => {
     peer.selectedOption = optionIndex;
     
     const formattedOpt = String.fromCharCode(65 + optionIndex);
-    const systemMsg = {
+    room.chatHistory.push({
       sender: "System",
       content: `${peer.name} submitted response: Option ${formattedOpt}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarColor: "#94A3B8"
-    };
-    room.chatHistory.push(systemMsg);
-
-    await runWithSupabase(async () => {
-      // Update peer selection
-      const { error: peerErr } = await supabase
-        .from("room_peers")
-        .update({ selected_option: optionIndex })
-        .eq("id", peerId);
-      if (peerErr) throw peerErr;
-
-      // Insert message
-      const { error: msgErr } = await supabase
-        .from("room_messages")
-        .insert({
-          room_id: roomId,
-          sender: systemMsg.sender,
-          content: systemMsg.content,
-          avatar_color: systemMsg.avatarColor,
-          timestamp: systemMsg.timestamp
-        });
-      if (msgErr) throw msgErr;
-    }, () => {
-      const localRoom = studyRooms.get(roomId);
-      if (localRoom) {
-        const lp = localRoom.peers.find(p => p.id === peerId);
-        if (lp) lp.selectedOption = optionIndex;
-        localRoom.chatHistory.push(systemMsg);
-      }
     });
 
     broadcastToRoom(roomId, { type: "sync", room });
@@ -1078,12 +746,12 @@ app.post("/api/study-rooms/:roomId/submit-answer", async (req, res) => {
   res.json({ success: true, room });
 });
 
-// 4. Next question
+// 5. Next question
 app.post("/api/study-rooms/:roomId/next-question", async (req, res) => {
   const { roomId } = req.params;
   const { peerId } = req.body;
 
-  const room = await getRoomState(roomId);
+  const room = studyRooms.get(roomId);
   if (!room) {
     return res.status(404).json({ error: "Study room not found." });
   }
@@ -1097,95 +765,40 @@ app.post("/api/study-rooms/:roomId/next-question", async (req, res) => {
   room.currentMcq = nextMcq;
   room.questionIndex += 1;
 
-  const systemMsg = {
+  room.chatHistory.push({
     sender: "System",
     content: `${peerName} advanced the session to Question #${room.questionIndex}.`,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     avatarColor: "#64748B"
-  };
-  room.chatHistory.push(systemMsg);
-
-  await runWithSupabase(async () => {
-    // Update room
-    const { error: roomErr } = await supabase
-      .from("study_rooms")
-      .update({ current_mcq: nextMcq, question_index: room.questionIndex })
-      .eq("id", roomId);
-    if (roomErr) throw roomErr;
-
-    // Reset all peers selection
-    const { error: peersErr } = await supabase
-      .from("room_peers")
-      .update({ selected_option: null })
-      .eq("room_id", roomId);
-    if (peersErr) throw peersErr;
-
-    // Insert message
-    const { error: msgErr } = await supabase
-      .from("room_messages")
-      .insert({
-        room_id: roomId,
-        sender: systemMsg.sender,
-        content: systemMsg.content,
-        avatar_color: systemMsg.avatarColor,
-        timestamp: systemMsg.timestamp
-      });
-    if (msgErr) throw msgErr;
-  }, () => {
-    const localRoom = studyRooms.get(roomId);
-    if (localRoom) {
-      localRoom.peers.forEach(p => p.selectedOption = null);
-      localRoom.currentMcq = nextMcq;
-      localRoom.questionIndex += 1;
-      localRoom.chatHistory.push(systemMsg);
-    }
   });
 
   broadcastToRoom(roomId, { type: "sync", room });
   res.json({ success: true, room });
 });
 
-// 5. Post chat message
-app.post("/api/study-rooms/:roomId/chat", async (req, res) => {
+// 6. Post chat message
+app.post("/api/study-rooms/:roomId/chat", (req, res) => {
   const { roomId } = req.params;
   const { peerId, content } = req.body;
 
-  const room = await getRoomState(roomId);
+  const room = studyRooms.get(roomId);
   if (!room) {
     return res.status(404).json({ error: "Study room not found." });
   }
 
   const peer = room.peers.find(p => p.id === peerId);
   if (peer) {
-    const chatMsg = {
+    const chatMsg: RoomChat = {
       sender: peer.name,
       content,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       avatarColor: peer.avatarColor
     };
     room.chatHistory.push(chatMsg);
-
-    await runWithSupabase(async () => {
-      // Insert message
-      const { error: msgErr } = await supabase
-        .from("room_messages")
-        .insert({
-          room_id: roomId,
-          sender: chatMsg.sender,
-          content: chatMsg.content,
-          avatar_color: chatMsg.avatarColor,
-          timestamp: chatMsg.timestamp
-        });
-      if (msgErr) throw msgErr;
-    }, () => {
-      const localRoom = studyRooms.get(roomId);
-      if (localRoom) {
-        localRoom.chatHistory.push(chatMsg);
-        if (localRoom.chatHistory.length > 50) {
-          localRoom.chatHistory.shift();
-        }
-      }
-    });
+    
+    if (room.chatHistory.length > 50) {
+      room.chatHistory.shift();
+    }
 
     broadcastToRoom(roomId, { type: "sync", room });
   }
@@ -1193,64 +806,26 @@ app.post("/api/study-rooms/:roomId/chat", async (req, res) => {
   res.json({ success: true, room });
 });
 
-// 6. Leave room
-app.post("/api/study-rooms/:roomId/leave", async (req, res) => {
+// 7. Leave room
+app.post("/api/study-rooms/:roomId/leave", (req, res) => {
   const { roomId } = req.params;
   const { peerId } = req.body;
 
-  const room = await getRoomState(roomId);
+  const room = studyRooms.get(roomId);
   if (room) {
     const peer = room.peers.find(p => p.id === peerId);
     if (peer) {
-      const systemMsg = {
+      room.chatHistory.push({
         sender: "System",
         content: `${peer.name} departed the room.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         avatarColor: "#64748B"
-      };
-      room.chatHistory.push(systemMsg);
-      room.peers = room.peers.filter(p => p.id !== peerId);
-
-      await runWithSupabase(async () => {
-        // Delete peer
-        const { error: peerErr } = await supabase
-          .from("room_peers")
-          .delete()
-          .eq("id", peerId);
-        if (peerErr) throw peerErr;
-
-        if (room.peers.length === 0) {
-          // Delete room if no peers left
-          const { error: roomErr } = await supabase
-            .from("study_rooms")
-            .delete()
-            .eq("id", roomId);
-          if (roomErr) throw roomErr;
-        } else {
-          // Insert system message
-          const { error: msgErr } = await supabase
-            .from("room_messages")
-            .insert({
-              room_id: roomId,
-              sender: systemMsg.sender,
-              content: systemMsg.content,
-              avatar_color: systemMsg.avatarColor,
-              timestamp: systemMsg.timestamp
-            });
-          if (msgErr) throw msgErr;
-        }
-      }, () => {
-        const localRoom = studyRooms.get(roomId);
-        if (localRoom) {
-          localRoom.chatHistory.push(systemMsg);
-          localRoom.peers = localRoom.peers.filter(p => p.id !== peerId);
-          if (localRoom.peers.length === 0) {
-            studyRooms.delete(roomId);
-          }
-        }
       });
-
-      if (room.peers.length > 0) {
+      room.peers = room.peers.filter(p => p.id !== peerId);
+      
+      if (room.peers.length === 0) {
+        studyRooms.delete(roomId);
+      } else {
         broadcastToRoom(roomId, { type: "sync", room });
       }
     }
@@ -1519,123 +1094,204 @@ Make all comments highly instructive, educational, and clinically rigorous. Retu
   }
 });
 
-// --- Platform Metrics Endpoint ---
-app.get("/api/platform-metrics", async (req, res) => {
-  const metrics = await runWithSupabase(async () => {
-    const [mcqResult, drugResult, perfResult] = await Promise.all([
-      supabase.from("custom_mcqs").select("id", { count: "exact", head: true }),
-      supabase.from("custom_drugs").select("id", { count: "exact", head: true }),
-      supabase.from("user_performance").select("id", { count: "exact", head: true }),
-    ]);
-    return {
-      activeStudents: 142508 + (perfResult.count || 0),
-      monthlyMRR: "$64,280",
-      licensedUniversities: 48,
-      aiEngineCalls: "1.2 Million / Mo",
-      customMCQs: (mcqResult.count || 0),
-      customDrugs: (drugResult.count || 0),
-    };
-  }, () => ({
-    activeStudents: 142508,
-    monthlyMRR: "$64,280",
-    licensedUniversities: 48,
-    aiEngineCalls: "1.2 Million / Mo",
-    customMCQs: 0,
-    customDrugs: 0,
-  }));
+// --- Clinical Twin Simulation Engine Route ---
+app.post("/api/clinical-twin-simulate", async (req, res) => {
+  const { presetCase, chosenAction, previousActions, currentVitals, currentScore, actionType, investigationsOrdered } = req.body;
+  const client = getAIClient();
 
-  res.json(metrics);
-});
+  if (actionType === "generate") {
+    const { mcqQuestion, mcqRationale, examBoard, difficulty, department } = req.body;
+    if (!client) {
+      // Return a robust simulated preset based on department
+      return res.json({
+        success: true,
+        case: {
+          id: "dynamic_fallback",
+          title: "Atypical Chest Presentation",
+          examBoard: examBoard || "USMLE",
+          difficulty: difficulty || "Medium",
+          department: department || "Cardiology",
+          disease: "Coronary Syndrome Mimic",
+          patientName: "Jameson Parker",
+          age: 58,
+          gender: "Male",
+          occupation: "Postal Worker",
+          medicalHistory: "Essential Hypertension for 10 years, controlled with Lisinopril.",
+          familyHistory: "Father sustained an MI at age 64.",
+          riskFactors: "Hypercholesterolemia, sedentary lifestyle, former smoker.",
+          chiefComplaint: "Sensation of retrosternal pressure radiating to back, resolving partially on rest.",
+          physicalExam: "Normal chest excursion, lungs clear to auscultation, dual heart sounds with no murmurs, no lower extremity edema.",
+          initialVitals: { bp: "144/88", hr: 82, rr: 18, temp: "36.8 °C", spo2: 95 },
+          investigations: [
+            { id: "ecg", name: "12-Lead ECG", result: "Sinus rhythm with minor non-specific T-wave flattening in lateral leads." },
+            { id: "trop", name: "Cardiac Troponins", result: "0.02 ng/mL (Reference range < 0.04 ng/mL)." }
+          ],
+          actions: [
+            {
+              id: "act1",
+              text: "Administer chewable Aspirin 325mg and continue telemetry monitoring.",
+              category: "management",
+              feedback: "Excellent, protective antiplatelet therapy initiated. Telemetry shows no arrhythmias.",
+              correctness: "Correct",
+              scoreImpact: 30,
+              reasoning: "Immediate aspirin therapy reduces cardiovascular risk in any patient with suspected acute coronary syndrome.",
+              pathophysiology: "Aspirin irreversibly acetylates cyclooxygenase-1 (COX-1), blocking thromboxane A2 production and preventing platelet thrombotic aggregation.",
+              pearl: "Chewing aspirin is preferred as it speeds absorption and is the single most critical survival drug in early suspected ischemic syndromes."
+            },
+            {
+              id: "act2",
+              text: "Discharge patient immediately to outpatient cardiology clinic.",
+              category: "dangerous",
+              feedback: "Severe warning: Discharging a patient with ongoing chest discomfort without serial troponin testing is highly dangerous!",
+              correctness: "Dangerous",
+              scoreImpact: -25,
+              reasoning: "Early acute myocardial infarction can present with initial negative troponins, demanding serial measurements 3-6 hours later.",
+              pathophysiology: "Premature discharge can lead to unrecognized plaque rupture progressing to complete arterial occlusion and ventricular fibrillation outside a hospital setting.",
+              pearl: "Never discharge an acute chest pain patient based on a single negative troponin. 'Serial' is the word."
+            }
+          ]
+        }
+      });
+    }
 
-// --- Faculty Clinical Cases Endpoints ---
-const localFacultyCases: any[] = [];
+    try {
+      const prompt = `You are the BioTwin Medical OS simulation generator.
+Convert this medical MCQ question into a fully interactive clinical patient twin simulation case.
 
-app.get("/api/faculty-cases", async (req, res) => {
-  const cases = await runWithSupabase(async () => {
-    const { data, error } = await supabase
-      .from("faculty_cases")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) throw error;
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      name: item.patient_name,
-      age: item.age,
-      gender: item.gender,
-      chiefComplaint: item.chief_complaint,
-      hpi: item.hpi,
-      bp: item.bp,
-      hr: item.hr,
-      rr: item.rr,
-      temp: item.temp,
-      spo2: item.spo2,
-      physicalExam: item.physical_exam,
-      finalDiagnosis: item.final_diagnosis,
-      correctManagement: item.correct_management,
-      createdAt: item.created_at,
-    }));
-  }, () => localFacultyCases);
+MCQ Question:
+${mcqQuestion}
 
-  res.json(cases);
-});
+MCQ Rationale:
+${mcqRationale}
 
-app.post("/api/faculty-cases", async (req, res) => {
-  const { name, age, gender, chiefComplaint, hpi, bp, hr, rr, temp, spo2, physicalExam, finalDiagnosis, correctManagement } = req.body;
-  if (!name || !chiefComplaint || !finalDiagnosis) {
-    return res.status(400).json({ error: "Missing required case fields." });
+Parameters:
+- Exam Board: ${examBoard || "USMLE"}
+- Difficulty: ${difficulty || "Medium"}
+- Department: ${department || "Cardiology"}
+
+Return a JSON object matching this schema:
+{
+  "id": "dynamic_twin",
+  "title": "A short descriptive title of the presentation",
+  "examBoard": "${examBoard || "USMLE"}",
+  "difficulty": "${difficulty || "Medium"}",
+  "department": "${department || "Cardiology"}",
+  "disease": "The primary clinical disease / diagnosis",
+  "patientName": "A realistic human name",
+  "age": 45,
+  "gender": "Male or Female",
+  "occupation": "A realistic occupation",
+  "medicalHistory": "Detailed relevant medical history",
+  "familyHistory": "Detailed relevant family history",
+  "riskFactors": "Relevant clinical risk factors",
+  "chiefComplaint": "The patient's chief complaint in descriptive lay terms",
+  "physicalExam": "Detailed physical exam findings",
+  "initialVitals": { "bp": "120/80", "hr": 80, "rr": 16, "temp": "37.0 °C", "spo2": 98 },
+  "investigations": [
+    { "id": "ecg", "name": "12-Lead ECG", "result": "ECG results description" },
+    { "id": "trop", "name": "Troponins", "result": "Troponin lab results" },
+    { "id": "cbc", "name": "Complete Blood Count", "result": "CBC results" },
+    { "id": "cxr", "name": "Chest X-ray", "result": "Chest X-ray results" }
+  ],
+  "actions": [
+    {
+      "id": "action1",
+      "text": "Correct clinical intervention option text",
+      "category": "management",
+      "feedback": "Praising feedback text explaining success",
+      "correctness": "Correct",
+      "scoreImpact": 30,
+      "nextVitals": { "bp": "120/80", "hr": 75, "rr": 14, "temp": "37.0 °C", "spo2": 99 },
+      "reasoning": "Clinical reasoning of why this is correct",
+      "pathophysiology": "Pathophysiological rationale",
+      "pearl": "High-yield exam pearl"
+    },
+    {
+      "id": "action2",
+      "text": "A partially correct clinical action option text",
+      "category": "stabilization",
+      "feedback": "Feedback text explaining the partial correct response",
+      "correctness": "Partially Correct",
+      "scoreImpact": 15,
+      "reasoning": "Clinical reasoning",
+      "pathophysiology": "Pathophysiological rationale",
+      "pearl": "High-yield exam pearl"
+    },
+    {
+      "id": "action3",
+      "text": "A completely incorrect/dangerous option text",
+      "category": "dangerous",
+      "feedback": "Feedback explaining the severe error or complication triggered",
+      "correctness": "Dangerous",
+      "scoreImpact": -25,
+      "nextVitals": { "bp": "90/55", "hr": 110, "rr": 24, "temp": "37.0 °C", "spo2": 91 },
+      "reasoning": "Reasoning explaining why this is incorrect/dangerous",
+      "pathophysiology": "Pathophysiological details of the danger",
+      "pearl": "High-yield clinical warning"
+    }
+  ]
+}
+
+Ensure the response contains ONLY raw JSON, conforming exactly to the schema.`;
+
+      const response = await client.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+        }
+      });
+
+      return res.json({ success: true, case: JSON.parse(response.text || "{}") });
+    } catch (err: any) {
+      console.error("Error generating dynamic twin:", err);
+      return res.status(500).json({ error: "Failed to generate dynamic twin." });
+    }
   }
 
-  const newCase = { id: `case_${Date.now()}`, name, age, gender, chiefComplaint, hpi, bp, hr, rr, temp, spo2, physicalExam, finalDiagnosis, correctManagement, createdAt: new Date().toISOString() };
+  // Evaluate action turn
+  if (!client) {
+    return res.json({ success: false, message: "Using offline local simulator." });
+  }
 
-  await runWithSupabase(async () => {
-    const { error } = await supabase.from("faculty_cases").insert({
-      patient_name: name,
-      age,
-      gender,
-      chief_complaint: chiefComplaint,
-      hpi: hpi || "",
-      bp: bp || "120/80",
-      hr: hr || "80",
-      rr: rr || "16",
-      temp: temp || "37.0",
-      spo2: spo2 || "98",
-      physical_exam: physicalExam || "",
-      final_diagnosis: finalDiagnosis,
-      correct_management: correctManagement || "",
+  try {
+    const prompt = `You are the BioTwin Medical OS decision engine. Evaluate the clinical decision made by the learner.
+
+Context:
+- Patient: ${presetCase.patientName}, ${presetCase.age} y/o ${presetCase.gender} diagnosed with ${presetCase.disease}.
+- Chief Complaint: ${presetCase.chiefComplaint}
+- Current Vitals: ${JSON.stringify(currentVitals)}
+- Action Taken: "${chosenAction}"
+- Previous Actions Taken: ${JSON.stringify(previousActions || [])}
+- Investigations Ordered so far: ${JSON.stringify(investigationsOrdered || [])}
+
+Evaluate this decision and output a JSON response containing:
+{
+  "correctness": "Correct" | "Partially Correct" | "Incorrect" | "Dangerous",
+  "scoreImpact": -40 to +40,
+  "feedback": "Direct patient reaction / clinical monitor feedback detailing what occurred after this action",
+  "reasoning": "Rigorous medical reasoning matching MBBS/USMLE/FCPS syllabus standards",
+  "pathophysiology": "Detailed pathophysiological process behind the change",
+  "pearl": "High-yield exam point/pearl",
+  "nextVitals": { "bp": "BP string", "hr": 120, "rr": 20, "temp": "temp string", "spo2": 95 },
+  "complicationTriggered": true | false,
+  "complicationDescription": "Describe any acute complication triggered (e.g. respiratory collapse, severe hyperkalemic arrhythmia, cardiogenic shock)"
+}
+
+Ensure the response contains ONLY raw JSON, conforming exactly to the schema.`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+      }
     });
-    if (error) throw error;
-  }, () => {
-    localFacultyCases.unshift(newCase);
-  });
 
-  res.json({ success: true, case: newCase });
-});
-
-// --- Credential Audit Action Endpoint ---
-const auditDecisions = new Map<string, { doctor: string; status: string; timestamp: string }>();
-
-app.post("/api/credential-audit", async (req, res) => {
-  const { hospitalId, doctor, action } = req.body;
-  if (!hospitalId || !action) {
-    return res.status(400).json({ error: "Missing hospitalId or action." });
+    res.json(JSON.parse(response.text || "{}"));
+  } catch (err: any) {
+    res.status(500).json({ error: "Failed to run simulation turn." });
   }
-  const record = {
-    doctor,
-    status: action === "approve" ? "Approved" : "Declined",
-    timestamp: new Date().toISOString()
-  };
-  await runWithSupabase(async () => {
-    const { error } = await supabase.from("credential_audits").upsert({
-      hospital_id: hospitalId,
-      doctor,
-      status: record.status,
-      updated_at: record.timestamp
-    }, { onConflict: "hospital_id" });
-    if (error) throw error;
-  }, () => {
-    auditDecisions.set(hospitalId, record);
-  });
-  res.json({ success: true, ...record });
 });
 
 // --- Server & Vite Setup ---

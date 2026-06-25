@@ -98,94 +98,13 @@ export default function App() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, [showRuler]);
 
-  // Load custom MCQs and drugs from database on mount
-  useEffect(() => {
-    fetch("/api/custom-mcqs")
-      .then(res => res.json())
-      .then((data: MCQ[]) => {
-        if (data && data.length > 0) {
-          setCustomMCQs(prev => {
-            const unique = data.filter(d => !prev.some(p => p.question === d.question));
-            return [...unique, ...prev];
-          });
-        }
-      })
-      .catch(err => console.error("Failed to load custom MCQs from DB:", err));
-
-    fetch("/api/custom-drugs")
-      .then(res => res.json())
-      .then((data: DrugProfile[]) => {
-        if (data && data.length > 0) {
-          setCustomDrugs(prev => {
-            const unique = data.filter(d => !prev.some(p => p.genericName === d.genericName));
-            return [...unique, ...prev];
-          });
-        }
-      })
-      .catch(err => console.error("Failed to load custom drugs from DB:", err));
-  }, []);
-
-  // Sync user performance stats with Supabase
-  const syncUserPerformance = (email: string) => {
-    fetch(`/api/user-performance?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.performanceData) {
-          localStorage.setItem("medglobal-mcq-performance", JSON.stringify(data.performanceData));
-          window.dispatchEvent(new Event("storage"));
-        } else {
-          const localPerf = localStorage.getItem("medglobal-mcq-performance");
-          if (localPerf) {
-            fetch("/api/user-performance", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                email,
-                performanceData: JSON.parse(localPerf)
-              })
-            }).catch(err => console.error("Failed to push initial performance data:", err));
-          }
-        }
-      })
-      .catch(err => console.error("Failed to sync user performance:", err));
-  };
-
-  useEffect(() => {
-    if (isRegistered && registeredUser?.email) {
-      syncUserPerformance(registeredUser.email);
-    }
-  }, [isRegistered, registeredUser]);
-
-  // Append customized Qs/Drugs dynamically to catalog and save to database
+  // Append customized Qs/Drugs dynamically to catalog
   const handleAddCustomMCQ = (newMCQ: MCQ) => {
     setCustomMCQs(prev => [newMCQ, ...prev]);
-    fetch("/api/custom-mcqs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newMCQ)
-    }).catch(err => console.error("Failed to save custom MCQ to DB:", err));
   };
-
-  // Persist user session to localStorage for cross-component DB sync
-  useEffect(() => {
-    if (isRegistered && registeredUser) {
-      localStorage.setItem("medglobal-user", JSON.stringify({
-        name: registeredUser.name,
-        email: registeredUser.email,
-        role: registeredUser.role,
-        identifier: registeredUser.identifier
-      }));
-      localStorage.setItem("medglobal-subscription-tier", subscriptionTier);
-    }
-  }, [isRegistered, registeredUser, subscriptionTier]);
 
   const handleAddCustomDrug = (newDrug: DrugProfile) => {
     setCustomDrugs(prev => [newDrug, ...prev]);
-    fetch("/api/custom-drugs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newDrug)
-    }).catch(err => console.error("Failed to save custom drug to DB:", err));
   };
 
   // Filter specialties based on category select
@@ -276,8 +195,6 @@ export default function App() {
                   onClick={() => {
                     setIsRegistered(false);
                     setRegisteredUser(null);
-                    localStorage.removeItem("medglobal-user");
-                    localStorage.removeItem("medglobal-subscription-tier");
                   }}
                   className="text-[9px] font-extrabold uppercase tracking-widest text-red-500 hover:text-red-700 bg-red-50 border border-red-100 py-1.5 px-3 rounded-lg cursor-pointer transition-all"
                 >
