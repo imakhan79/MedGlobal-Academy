@@ -54,7 +54,9 @@ import {
   Cpu,
   Database,
   AlertCircle,
-  Terminal
+  Terminal,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 
 export default function App() {
@@ -79,6 +81,19 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [demoOption, setDemoOption] = useState<string>("");
+  const [isVitalsRecalculating, setIsVitalsRecalculating] = useState(false);
+  const [showClinicalHistory, setShowClinicalHistory] = useState(false);
+
+  // Trigger pulse recalculation whenever demoOption changes
+  useEffect(() => {
+    if (showDemo) {
+      setIsVitalsRecalculating(true);
+      const timer = setTimeout(() => {
+        setIsVitalsRecalculating(false);
+      }, 750);
+      return () => clearTimeout(timer);
+    }
+  }, [demoOption, showDemo]);
 
   // Additional Demo states
   const [showCMEDemo, setShowCMEDemo] = useState(false);
@@ -875,33 +890,75 @@ export default function App() {
             </div>
 
             {/* Virtual Monitor */}
-            <div className="bg-slate-950 text-emerald-400 p-4 rounded-2xl font-mono text-xs space-y-3 border border-slate-800">
+            <div className={`bg-slate-950 text-emerald-400 p-4 rounded-2xl font-mono text-xs space-y-3 border transition-all duration-500 ${
+              isVitalsRecalculating 
+                ? "animate-pulse border-amber-500 bg-slate-900 shadow-lg shadow-amber-500/10" 
+                : "border-slate-800"
+            }`}>
               <div className="flex justify-between items-center border-b border-slate-900 pb-2 text-[10px] text-slate-500">
                 <span>VITAL SIGNS MONITOR</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> LIVE SIMULATOR</span>
+                {isVitalsRecalculating ? (
+                  <span className="flex items-center gap-1 text-amber-500 font-bold animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> RECALCULATING...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span> LIVE SIMULATOR</span>
+                )}
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <span className="text-[8px] text-slate-500 block">HR bpm</span>
-                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className={`text-lg font-bold transition-all duration-300 ${
+                    isVitalsRecalculating 
+                      ? "blur-[2px] opacity-60 text-amber-400" 
+                      : demoOption === "furosemide" 
+                      ? "text-emerald-400" 
+                      : demoOption === "hydration" 
+                      ? "text-red-400 animate-pulse" 
+                      : "text-emerald-400"
+                  }`}>
                     {demoOption === "furosemide" ? "74 bpm" : demoOption === "hydration" ? "110 bpm" : "82 bpm"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">NIBP mmHg</span>
-                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className={`text-lg font-bold transition-all duration-300 ${
+                    isVitalsRecalculating 
+                      ? "blur-[2px] opacity-60 text-amber-400" 
+                      : demoOption === "furosemide" 
+                      ? "text-emerald-400" 
+                      : demoOption === "hydration" 
+                      ? "text-red-400" 
+                      : "text-emerald-400"
+                  }`}>
                     {demoOption === "furosemide" ? "120/80" : demoOption === "hydration" ? "155/95" : "135/88"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">SPO2 %</span>
-                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className={`text-lg font-bold transition-all duration-300 ${
+                    isVitalsRecalculating 
+                      ? "blur-[2px] opacity-60 text-amber-400" 
+                      : demoOption === "furosemide" 
+                      ? "text-emerald-400" 
+                      : demoOption === "hydration" 
+                      ? "text-red-400 animate-pulse" 
+                      : "text-emerald-400"
+                  }`}>
                     {demoOption === "furosemide" ? "99%" : demoOption === "hydration" ? "88%" : "97%"}
                   </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">RR /min</span>
-                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                  <span className={`text-lg font-bold transition-all duration-300 ${
+                    isVitalsRecalculating 
+                      ? "blur-[2px] opacity-60 text-amber-400" 
+                      : demoOption === "furosemide" 
+                      ? "text-emerald-400" 
+                      : demoOption === "hydration" 
+                      ? "text-red-400" 
+                      : "text-emerald-400"
+                  }`}>
                     {demoOption === "furosemide" ? "14 /min" : demoOption === "hydration" ? "28 /min" : "18 /min"}
                   </span>
                 </div>
@@ -909,6 +966,64 @@ export default function App() {
               <div className="pt-2 border-t border-slate-900 text-[10px] text-slate-400 italic">
                 Case presentation: "A 62-year-old female presents with progressive dyspnea, orthopnea, and bilateral ankle edema."
               </div>
+            </div>
+
+            {/* Collapsible Clinical History */}
+            <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+              <button
+                onClick={() => setShowClinicalHistory(!showClinicalHistory)}
+                className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg bg-blue-50 text-[#003B95]">
+                    <FileText className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">Clinical Patient History</span>
+                    <span className="text-[10px] text-slate-500">HPI & Past Medical History</span>
+                  </div>
+                </div>
+                {showClinicalHistory ? (
+                  <ChevronUp className="h-4 w-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {showClinicalHistory && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    className="overflow-hidden"
+                  >
+                    <div className="p-4 border-t border-slate-100 bg-white space-y-3.5 text-xs">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#003B95] block">
+                          History of Present Illness (HPI)
+                        </span>
+                        <p className="text-slate-600 leading-relaxed font-sans text-xs">
+                          A 62-year-old female with a known history of chronic heart failure who presents with a 3-day history of progressively worsening shortness of breath. She reports orthopnea requiring her to sleep upright on 3 pillows, coupled with frequent episodes of paroxysmal nocturnal dyspnea (PND). She also describes severe bilateral lower extremity edema that has scaled dramatically over the last week.
+                        </p>
+                      </div>
+                      <div className="border-t border-slate-100 pt-3 space-y-1">
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#003B95] block">
+                          Past Medical History (PMH)
+                        </span>
+                        <ul className="list-disc list-inside space-y-1 text-slate-600 font-sans text-xs">
+                          <li>Congestive Heart Failure (CHF) with EF of 35% (HFrEF)</li>
+                          <li>Essential Hypertension (HTN)</li>
+                          <li>Coronary Artery Disease (CAD) with prior PCI (2021)</li>
+                          <li>Type 2 Diabetes Mellitus (T2DM)</li>
+                          <li>Chronic Kidney Disease (CKD) Stage IIIa</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Vitals Evolution Line Chart */}
