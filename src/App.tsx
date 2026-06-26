@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { MEDICAL_SPECIALTIES, LICENSE_EXAMS, MEDICAL_NEWS, PRESEEDED_MCQS, PRESEEDED_DRUGS } from "./data";
 import { UserRole, MCQ, DrugProfile } from "./types";
 import { motion, AnimatePresence } from "motion/react";
@@ -908,6 +909,96 @@ export default function App() {
               <div className="pt-2 border-t border-slate-900 text-[10px] text-slate-400 italic">
                 Case presentation: "A 62-year-old female presents with progressive dyspnea, orthopnea, and bilateral ankle edema."
               </div>
+            </div>
+
+            {/* Vitals Evolution Line Chart */}
+            <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-extrabold text-[#003B95] uppercase tracking-widest block">
+                  Vitals Trend & Stability Tracker
+                </span>
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                  demoOption === "furosemide" 
+                    ? "bg-emerald-100 text-emerald-800" 
+                    : demoOption === "hydration" 
+                    ? "bg-rose-100 text-rose-800 animate-pulse" 
+                    : "bg-slate-100 text-slate-600"
+                }`}>
+                  {demoOption === "furosemide" ? "Physiologically Stable" : demoOption === "hydration" ? "Acute Decompensation" : "Awaiting Intervention"}
+                </span>
+              </div>
+              
+              <div className="h-44 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart 
+                    data={[
+                      { step: "Admission", HR: 95, SPO2: 91 },
+                      { step: "O2 Support", HR: 88, SPO2: 95 },
+                      { step: "Baseline", HR: 82, SPO2: 97 },
+                      ...(demoOption === "furosemide" 
+                        ? [{ step: "Post-Tx", HR: 74, SPO2: 99 }] 
+                        : demoOption === "hydration" 
+                        ? [{ step: "Post-Tx", HR: 110, SPO2: 88 }] 
+                        : []
+                      )
+                    ]} 
+                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                  >
+                    <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="step" 
+                      stroke="#64748b" 
+                      fontSize={9} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <YAxis 
+                      stroke="#64748b" 
+                      fontSize={9} 
+                      domain={[60, 120]} 
+                      tickLine={false} 
+                      axisLine={false} 
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#ffffff', 
+                        borderColor: '#e2e8f0', 
+                        borderRadius: '12px', 
+                        fontSize: '10px',
+                        color: '#0f172a',
+                        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                      }} 
+                    />
+                    <Legend 
+                      verticalAlign="top" 
+                      height={20} 
+                      iconSize={6} 
+                      wrapperStyle={{ fontSize: '8px', fontWeight: 'bold' }} 
+                    />
+                    <Line 
+                      name="Heart Rate (HR)" 
+                      type="monotone" 
+                      dataKey="HR" 
+                      stroke="#ef4444" 
+                      strokeWidth={2.5} 
+                      dot={{ r: 4 }} 
+                      activeDot={{ r: 6 }} 
+                    />
+                    <Line 
+                      name="Oxygen Sat (SpO2 %)" 
+                      type="monotone" 
+                      dataKey="SPO2" 
+                      stroke="#06b6d4" 
+                      strokeWidth={2.5} 
+                      dot={{ r: 4 }} 
+                      activeDot={{ r: 6 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-[9px] text-slate-400 font-medium leading-normal italic text-center">
+                * Tracks physiological feedback loop of heart rate (HR) and blood oxygen saturation (SpO2) across therapeutic intervals.
+              </p>
             </div>
 
             <div className="space-y-3">
