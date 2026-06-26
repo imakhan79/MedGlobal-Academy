@@ -23,6 +23,7 @@ import KnowledgeSnapshot from "./components/KnowledgeSnapshot";
 import TypographyController from "./components/TypographyController";
 import RegistrationFlow from "./components/RegistrationFlow";
 import RoleDashboards from "./components/RoleDashboards";
+import SupabaseHub from "./components/SupabaseHub";
 
 // Lucide Icons
 import {
@@ -58,7 +59,7 @@ import {
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin"
+    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase"
   >("dashboard");
 
   // User Profile configuration
@@ -259,6 +260,7 @@ export default function App() {
                 { id: "drugs", label: "Pharma Center", icon: Heart },
                 { id: "dictionary", label: "Medical Dictionary", icon: BookOpen },
                 { id: "credentials", label: "Credentials & Plans", icon: Award },
+                { id: "supabase", label: "Supabase Cloud DB", icon: Database },
                 { id: "admin", label: "Faculty Hub", icon: Users }
               ].map(tab => {
                 const IconComp = tab.icon;
@@ -729,6 +731,18 @@ export default function App() {
                     onAddCustomMCQ={handleAddCustomMCQ}
                     onAddCustomDrug={handleAddCustomDrug}
                   />
+                </motion.div>
+              )}
+
+              {activeTab === "supabase" && (
+                <motion.div
+                  key="supabase"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <SupabaseHub />
                 </motion.div>
               )}
             </AnimatePresence>

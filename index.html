@@ -6,6 +6,29 @@
     <script>
       (function() {
         try {
+          var originalParse = JSON.parse;
+          JSON.parse = function(text, reviver) {
+            if (text === undefined || text === null || text === "undefined" || text === "null" || text === "") {
+              return null;
+            }
+            try {
+              return originalParse(text, reviver);
+            } catch (e) {
+              if (typeof text === 'string') {
+                var trimmed = text.trim();
+                if (trimmed === 'undefined' || trimmed === 'null' || trimmed === '') {
+                  return null;
+                }
+              }
+              console.warn("JSON.parse failed for value:", text, e);
+              return null;
+            }
+          };
+        } catch (e) {
+          console.warn('MedGlobal Guard: Failed to secure JSON.parse:', e);
+        }
+
+        try {
           var originalFetch = window.fetch;
           Object.defineProperty(window, 'fetch', {
             get: function() { return originalFetch; },

@@ -6,6 +6,7 @@ import { CheckCircle2, XCircle, Award, RefreshCw, Send, ChevronRight, User, Shie
 import { motion, AnimatePresence } from "motion/react";
 import InteractiveCaseStudy from "./InteractiveCaseStudy";
 import BioTwinSimulator from "./BioTwinSimulator";
+import AnatomicalSimulator from "./AnatomicalSimulator";
 
 const difficulties: Array<"Easy" | "Intermediate" | "Board-Level"> = ["Easy", "Intermediate", "Board-Level"];
 
@@ -840,8 +841,10 @@ export default function AssessmentEngine() {
                 </div>
               </div>
 
-              {/* Question Presentation Card */}
-              <div className="bg-[#F8FAFC]/50 border border-[#E2E8F0] rounded-xl p-5 md:p-6 space-y-4">
+              {/* Question and Interactive Anatomical Simulation Panels */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                {/* Left Column: Question Presentation Card */}
+                <div className="lg:col-span-7 bg-[#F8FAFC]/50 border border-[#E2E8F0] rounded-xl p-5 md:p-6 space-y-4 flex flex-col justify-between">
                 <div className="flex justify-between items-center flex-wrap gap-2">
                   <span className="bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD] text-[9px] px-2.5 py-1 rounded font-bold uppercase tracking-wider">
                     Question Item
@@ -1072,7 +1075,19 @@ export default function AssessmentEngine() {
                   )}
                 </div>
               </div>
+
+              {/* Right Column: Dynamic Live Anatomical Simulation Panel */}
+              <div className="lg:col-span-5">
+                <AnatomicalSimulator
+                  questionText={currentMCQ.question}
+                  specialty={currentMCQ.specialty || selectedSpecialty}
+                  selectedAnswerIndex={selectedAnswer}
+                  isSubmitted={isSubmitted}
+                  correctAnswerIndex={currentMCQ.correctAnswer}
+                />
+              </div>
             </div>
+          </div>
           ) : (
             /* Spaced-Repetition Flashcard Mode */
             <div className="space-y-6">
