@@ -24,13 +24,16 @@ export default function StudyConsistencyGraph() {
     const cachedStreak = localStorage.getItem("medglobal-consistency-streak");
     const cachedHours = localStorage.getItem("medglobal-consistency-hours");
 
-    if (cachedStreak && cachedStreak !== "undefined") setStreak(parseInt(cachedStreak));
-    if (cachedHours && cachedHours !== "undefined") setTotalHours(parseFloat(cachedHours));
+    if (cachedStreak && cachedStreak !== "undefined" && cachedStreak !== "null") setStreak(parseInt(cachedStreak) || 0);
+    if (cachedHours && cachedHours !== "undefined" && cachedHours !== "null") setTotalHours(parseFloat(cachedHours) || 0);
 
-    if (cachedData && cachedData !== "undefined") {
+    if (cachedData && cachedData !== "undefined" && cachedData !== "null") {
       try {
-        setDays(JSON.parse(cachedData));
-        return;
+        const parsed = JSON.parse(cachedData);
+        if (Array.isArray(parsed)) {
+          setDays(parsed);
+          return;
+        }
       } catch (e) {
         console.error("Failed to parse cached consistency data, generating fresh seed.", e);
       }

@@ -45,7 +45,14 @@ import {
   HelpCircle,
   Award,
   Crown,
-  Key
+  Key,
+  RotateCcw,
+  CheckCircle,
+  Download,
+  Cpu,
+  Database,
+  AlertCircle,
+  Terminal
 } from "lucide-react";
 
 export default function App() {
@@ -70,6 +77,26 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [showDemo, setShowDemo] = useState(false);
   const [demoOption, setDemoOption] = useState<string>("");
+
+  // Additional Demo states
+  const [showCMEDemo, setShowCMEDemo] = useState(false);
+  const [cmeHoursEarned, setCmeHoursEarned] = useState(15);
+  const [showSyntheticsDemo, setShowSyntheticsDemo] = useState(false);
+  const [syntheticDept, setSyntheticDept] = useState("Cardiology");
+  const [syntheticSeverity, setSyntheticSeverity] = useState("Moderate");
+  const [syntheticResult, setSyntheticResult] = useState<{
+    id: string;
+    age: number;
+    gender: string;
+    vitals: { hr: string; bp: string; spo2: string; temp: string };
+    symptoms: string[];
+    risk: string;
+    complianceHash: string;
+  } | null>(null);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
+
+  const [showProctoringDemo, setShowProctoringDemo] = useState(false);
+  const [proctorOption, setProctorOption] = useState<string>("");
 
   // Live collections (allowing dynamic Faculty additions)
   const [customMCQs, setCustomMCQs] = useState<MCQ[]>(PRESEEDED_MCQS);
@@ -404,16 +431,26 @@ export default function App() {
               {/* PRODUCT FEATURES OVERVIEW GRID */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { title: "Simulated Clinical Sandboxes", desc: "Test complex patient symptoms and vital signs in a risk-free academic playground.", icon: "🩺", color: "from-blue-500/5 to-indigo-500/5 border-blue-100" },
-                  { title: "CME Hours & Trackers", desc: "Earn official Continuing Medical Education credentials backed by Mayo Clinic Network validations.", icon: "🏆", color: "from-amber-500/5 to-yellow-500/5 border-amber-100" },
-                  { title: "Advanced Cohort Synthetics", desc: "Export high-fidelity, cryptographically compliant patient profiles for medical research.", icon: "📊", color: "from-emerald-500/5 to-teal-500/5 border-emerald-100" },
-                  { title: "Academic Proctoring Audits", desc: "Proctor live simulation assessments and track diagnostic gaps across classroom levels.", icon: "🏫", color: "from-purple-500/5 to-violet-500/5 border-purple-100" }
+                  { title: "Simulated Clinical Sandboxes", desc: "Test complex patient symptoms and vital signs in a risk-free academic playground.", icon: "🩺", color: "from-blue-500/5 to-indigo-500/5 border-blue-100", action: () => setShowDemo(true) },
+                  { title: "CME Hours & Trackers", desc: "Earn official Continuing Medical Education credentials backed by Mayo Clinic Network validations.", icon: "🏆", color: "from-amber-500/5 to-yellow-500/5 border-amber-100", action: () => setShowCMEDemo(true) },
+                  { title: "Advanced Cohort Synthetics", desc: "Export high-fidelity, cryptographically compliant patient profiles for medical research.", icon: "📊", color: "from-emerald-500/5 to-teal-500/5 border-emerald-100", action: () => setShowSyntheticsDemo(true) },
+                  { title: "Academic Proctoring Audits", desc: "Proctor live simulation assessments and track diagnostic gaps across classroom levels.", icon: "🏫", color: "from-purple-500/5 to-violet-500/5 border-purple-100", action: () => setShowProctoringDemo(true) }
                 ].map((feat, idx) => (
-                  <div key={idx} className={`bg-gradient-to-br ${feat.color} border p-6 rounded-2xl shadow-xs hover:shadow-md hover:scale-[1.02] transition-all duration-300 space-y-3`}>
-                    <span className="text-3xl inline-block drop-shadow-md">{feat.icon}</span>
-                    <h4 className="font-serif italic font-bold text-base text-slate-900 leading-snug">{feat.title}</h4>
-                    <p className="text-xs text-[#526071] leading-relaxed font-medium font-sans">{feat.desc}</p>
-                  </div>
+                  <button
+                    key={idx}
+                    onClick={feat.action}
+                    className={`bg-gradient-to-br ${feat.color} border p-6 rounded-2xl shadow-xs hover:shadow-lg hover:border-[#003B95]/50 hover:scale-[1.02] transition-all duration-300 text-left space-y-3 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-[#003B95]/20 w-full flex flex-col justify-between h-full`}
+                  >
+                    <div className="space-y-3">
+                      <span className="text-3xl inline-block drop-shadow-md group-hover:scale-110 transition-transform duration-300">{feat.icon}</span>
+                      <h4 className="font-serif italic font-bold text-base text-slate-900 leading-snug group-hover:text-[#003B95] transition-colors">{feat.title}</h4>
+                      <p className="text-xs text-[#526071] leading-relaxed font-medium font-sans">{feat.desc}</p>
+                    </div>
+                    <div className="pt-3 flex items-center gap-1 text-[10px] uppercase tracking-widest font-black text-[#003B95]/70 group-hover:text-[#003B95] transition-colors">
+                      <span>Launch Sandbox</span>
+                      <ArrowRight className="h-3 w-3 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                  </button>
                 ))}
               </div>
 
@@ -831,19 +868,27 @@ export default function App() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <span className="text-[8px] text-slate-500 block">HR bpm</span>
-                  <span className="text-lg font-bold text-emerald-400">82 bpm</span>
+                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                    {demoOption === "furosemide" ? "74 bpm" : demoOption === "hydration" ? "110 bpm" : "82 bpm"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">NIBP mmHg</span>
-                  <span className="text-lg font-bold text-emerald-400">135/88</span>
+                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                    {demoOption === "furosemide" ? "120/80" : demoOption === "hydration" ? "155/95" : "135/88"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">SPO2 %</span>
-                  <span className="text-lg font-bold text-emerald-400">97%</span>
+                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                    {demoOption === "furosemide" ? "99%" : demoOption === "hydration" ? "88%" : "97%"}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[8px] text-slate-500 block">RR /min</span>
-                  <span className="text-lg font-bold text-emerald-400">18 /min</span>
+                  <span className={`text-lg font-bold transition-colors duration-300 ${demoOption === "furosemide" ? "text-emerald-400" : demoOption === "hydration" ? "text-red-400" : "text-emerald-400"}`}>
+                    {demoOption === "furosemide" ? "14 /min" : demoOption === "hydration" ? "28 /min" : "18 /min"}
+                  </span>
                 </div>
               </div>
               <div className="pt-2 border-t border-slate-900 text-[10px] text-slate-400 italic">
@@ -857,7 +902,7 @@ export default function App() {
                 <button
                   onClick={() => setDemoOption("furosemide")}
                   className={`p-3 text-left border rounded-xl transition-all cursor-pointer ${
-                    demoOption === "furosemide" ? "border-emerald-500 bg-emerald-50/30" : "hover:bg-slate-50"
+                    demoOption === "furosemide" ? "border-emerald-500 bg-emerald-50/30 font-bold" : "hover:bg-slate-50"
                   }`}
                 >
                   <span className="text-xs font-bold text-slate-900 block font-sans">IV Furosemide 40mg</span>
@@ -866,7 +911,7 @@ export default function App() {
                 <button
                   onClick={() => setDemoOption("hydration")}
                   className={`p-3 text-left border rounded-xl transition-all cursor-pointer ${
-                    demoOption === "hydration" ? "border-red-500 bg-red-50/20" : "hover:bg-slate-50"
+                    demoOption === "hydration" ? "border-red-500 bg-red-50/20 font-bold" : "hover:bg-slate-50"
                   }`}
                 >
                   <span className="text-xs font-bold text-slate-900 block font-sans">IV Normal Saline 1L</span>
@@ -887,16 +932,472 @@ export default function App() {
               </div>
             )}
 
+            <div className="flex flex-col sm:flex-row gap-3">
+              {demoOption && (
+                <button
+                  onClick={() => setDemoOption("")}
+                  className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2"
+                  id="btn-restart-demo-simulation"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Restart Simulation</span>
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setShowDemo(false);
+                  setIsRegistering(true);
+                  setDemoOption("");
+                }}
+                className={`bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer ${
+                  demoOption ? "flex-1" : "w-full"
+                }`}
+              >
+                Ready to learn? Create Academic Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CME Hours & Trackers Demo Modal */}
+      {showCMEDemo && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full text-slate-800 space-y-6 relative my-8">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-[#003B95]">
+                <Award className="h-5 w-5 text-amber-500 animate-bounce" />
+                <h4 className="font-serif italic font-bold text-lg">CME Hours & Trackers Sandbox</h4>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowCMEDemo(false);
+                  setCmeHoursEarned(15);
+                }}
+                className="text-xs text-slate-400 hover:text-slate-600 font-extrabold uppercase tracking-widest cursor-pointer"
+              >
+                Close Sandbox
+              </button>
+            </div>
+
+            <div className="bg-amber-50/60 border border-amber-200/60 p-4 rounded-2xl space-y-4">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-900 font-sans">
+                <span>ANNUAL CME PROGRESSION TRACKER</span>
+                <span className="bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase">Mayo Clinic validated</span>
+              </div>
+              
+              {/* Progress Bar & Numeric Indicator */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <span className="text-2xl font-black text-slate-900 font-sans">
+                    {cmeHoursEarned} <span className="text-xs font-bold text-slate-500">/ 50.0 Credits</span>
+                  </span>
+                  <span className="text-xs font-bold text-amber-600 font-sans">
+                    {Math.min(100, cmeHoursEarned * 2)}% Completed
+                  </span>
+                </div>
+                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${Math.min(100, cmeHoursEarned * 2)}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Status Milestone Alerts */}
+              <div className="text-[11px] text-slate-600 leading-relaxed bg-white/70 border border-slate-100 p-3 rounded-xl font-medium">
+                {cmeHoursEarned < 25 ? (
+                  <p className="flex items-center gap-1.5">
+                    <AlertCircle className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span>Log more mock hours to unlock the bronze credential tier.</span>
+                  </p>
+                ) : cmeHoursEarned < 50 ? (
+                  <p className="flex items-center gap-1.5 text-amber-800 font-semibold">
+                    <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
+                    <span>🎉 Bronze Tier Unlocked! Mayo Clinic Network certificate is now viewable below.</span>
+                  </p>
+                ) : (
+                  <p className="flex items-center gap-1.5 text-emerald-800 font-bold">
+                    <CheckCircle className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                    <span>🏆 GOLD TIERS ACHIEVED! Cryptographic certificate verification #MC-2026-98421 is active.</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Simulated Actions */}
+            <div className="space-y-2">
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Simulate Interactive Logging:</span>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setCmeHoursEarned(prev => Math.min(60, prev + 5))}
+                  className="p-3 text-left border rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer font-sans"
+                >
+                  <span className="text-xs font-bold text-slate-900 block font-sans">+5.0 CME Credits</span>
+                  <span className="text-[9px] text-[#64748B] leading-none block">Complete Acute Infarct module</span>
+                </button>
+                <button
+                  onClick={() => setCmeHoursEarned(prev => Math.min(60, prev + 15))}
+                  className="p-3 text-left border rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer font-sans"
+                >
+                  <span className="text-xs font-bold text-slate-900 block font-sans">+15.0 CME Credits</span>
+                  <span className="text-[9px] text-[#64748B] leading-none block">Perform Decompensated HF simulation</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dynamic Certificate Preview */}
+            {cmeHoursEarned >= 25 && (
+              <div className="border-2 border-dashed border-amber-300 bg-amber-50/20 p-5 rounded-2xl text-center space-y-3 relative overflow-hidden animate-scaleUp">
+                <div className="absolute top-0 right-0 transform translate-x-6 -translate-y-6 opacity-[0.05]">
+                  <Award className="w-24 h-24 text-amber-500" />
+                </div>
+                <span className="text-[8px] uppercase tracking-widest text-amber-800 font-extrabold bg-amber-100 py-0.5 px-2 rounded-full border border-amber-200">
+                  Mayo Clinic Network - Certified
+                </span>
+                <h5 className="font-serif italic font-bold text-sm text-slate-900">Certificate of Continuing Medical Education</h5>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-sans max-w-sm mx-auto">
+                  This certifies that the candidate has successfully simulated and reviewed advanced clinical pathways, acquiring <strong>{cmeHoursEarned}.0 Credits</strong>.
+                </p>
+                <div className="pt-2 flex items-center justify-between text-[8px] text-slate-400 font-mono border-t border-amber-200/40">
+                  <span>HASH: SHA256-MC26B{cmeHoursEarned}</span>
+                  <span>ID: MC-2026-98421</span>
+                </div>
+                <button 
+                  onClick={() => alert(`Mayo Clinic validated certificate downloaded successfully!\nID: MC-2026-98421\nCredits: ${cmeHoursEarned} CME`)}
+                  className="bg-slate-900 hover:bg-slate-850 text-white font-bold text-[9px] uppercase tracking-widest py-1.5 px-4 rounded-lg inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Download className="h-3 w-3" />
+                  <span>Download PDF Certificate</span>
+                </button>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              <button
+                onClick={() => setCmeHoursEarned(15)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                <span>Reset Hours</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowCMEDemo(false);
+                  setIsRegistering(true);
+                  setCmeHoursEarned(15);
+                }}
+                className="flex-1 bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Ready to earn real CME? Sign Up
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Cohort Synthetics Demo Modal */}
+      {showSyntheticsDemo && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full text-slate-800 space-y-6 relative my-8">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-[#003B95]">
+                <Database className="h-5 w-5 text-emerald-500 animate-pulse" />
+                <h4 className="font-serif italic font-bold text-lg">Cohort Profile Synthesizer</h4>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowSyntheticsDemo(false);
+                  setSyntheticResult(null);
+                }}
+                className="text-xs text-slate-400 hover:text-slate-600 font-extrabold uppercase tracking-widest cursor-pointer"
+              >
+                Close Sandbox
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed font-sans font-semibold">
+              Generate and export cryptographically compliant, HIPAA-compliant synthetic patient records for cohort analysis and clinical studies.
+            </p>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Select Cohort Dept:</label>
+                <select
+                  value={syntheticDept}
+                  onChange={(e) => setSyntheticDept(e.target.value)}
+                  className="w-full bg-[#F8FAFC] hover:bg-slate-100 border border-[#E2E8F0] text-xs py-2.5 px-3 rounded-xl text-slate-800 font-extrabold outline-none cursor-pointer"
+                >
+                  <option value="Cardiology">Cardiology</option>
+                  <option value="Pulmonology">Pulmonology</option>
+                  <option value="Pediatrics">Pediatrics</option>
+                  <option value="Neurology">Neurology</option>
+                  <option value="Endocrinology">Endocrinology</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Severity Class:</label>
+                <select
+                  value={syntheticSeverity}
+                  onChange={(e) => setSyntheticSeverity(e.target.value)}
+                  className="w-full bg-[#F8FAFC] hover:bg-slate-100 border border-[#E2E8F0] text-xs py-2.5 px-3 rounded-xl text-slate-800 font-extrabold outline-none cursor-pointer"
+                >
+                  <option value="Mild">Mild / Baseline</option>
+                  <option value="Moderate">Moderate Outpatient</option>
+                  <option value="Critical">Critical Care ICU</option>
+                </select>
+              </div>
+            </div>
+
             <button
               onClick={() => {
-                setShowDemo(false);
-                setIsRegistering(true);
-                setDemoOption("");
+                setIsSynthesizing(true);
+                setSyntheticResult(null);
+                setTimeout(() => {
+                  setIsSynthesizing(false);
+                  
+                  // Seed realistic clinical parameters based on parameters
+                  const age = syntheticDept === "Pediatrics" ? Math.floor(Math.random() * 12) + 1 : Math.floor(Math.random() * 35) + 45;
+                  const gender = Math.random() > 0.5 ? "Female" : "Male";
+                  
+                  let hr = "72 bpm", bp = "120/80", spo2 = "98%", temp = "36.7 °C";
+                  let symptoms: string[] = [];
+                  let risk = "Low Risk Profile";
+
+                  if (syntheticDept === "Cardiology") {
+                    if (syntheticSeverity === "Critical") {
+                      hr = "112 bpm (Sinus Tachycardia)"; bp = "168/102 mmHg"; spo2 = "91%"; temp = "37.1 °C";
+                      symptoms = ["Acute substernal chest pressure", "Radiation to left mandible", "Severe diaphoresis"];
+                      risk = "High Risk: Acute Coronary Syndrome Pathway Triggered";
+                    } else if (syntheticSeverity === "Moderate") {
+                      hr = "88 bpm"; bp = "138/88 mmHg"; spo2 = "96%"; temp = "36.8 °C";
+                      symptoms = ["Exertional dyspnea", "Bilateral pitting ankle edema"];
+                      risk = "Moderate Risk: Decompensated CHF Grade II";
+                    } else {
+                      hr = "64 bpm"; bp = "118/74 mmHg"; spo2 = "99%"; temp = "36.5 °C";
+                      symptoms = ["Mild fatigue", "Occasional palpitations"];
+                      risk = "Low Risk: Chronic Hypertension follow-up";
+                    }
+                  } else if (syntheticDept === "Pulmonology") {
+                    if (syntheticSeverity === "Critical") {
+                      hr = "124 bpm"; bp = "110/68 mmHg"; spo2 = "84% (Critical Desat)"; temp = "38.9 °C (Febrile)";
+                      symptoms = ["Accessory muscle breathing", "Diffuse expiratory wheezes", "Cyanotic nail beds"];
+                      risk = "High Risk: Status Asthmaticus / Acute Respiratory Failure";
+                    } else if (syntheticSeverity === "Moderate") {
+                      hr = "92 bpm"; bp = "128/82 mmHg"; spo2 = "93%"; temp = "37.4 °C";
+                      symptoms = ["Productive cough", "Pleuritic chest pain", "Low-grade fevers"];
+                      risk = "Moderate Risk: Community-Acquired Pneumonia suspect";
+                    } else {
+                      hr = "76 bpm"; bp = "122/78 mmHg"; spo2 = "97%"; temp = "36.8 °C";
+                      symptoms = ["Persistent dry cough", "Mild seasonal dyspnea"];
+                      risk = "Low Risk: Controlled Asthma";
+                    }
+                  } else {
+                    // Default values
+                    symptoms = ["General weakness", "Mild localized discomfort"];
+                    risk = "Standard clinical baseline surveillance";
+                  }
+
+                  const hashInput = `${syntheticDept}-${syntheticSeverity}-${age}-${gender}-${hr}-${bp}`;
+                  const complianceHash = "0x" + Array.from(hashInput).map(c => c.charCodeAt(0).toString(16)).join("").substring(0, 32).toUpperCase();
+
+                  setSyntheticResult({ id: `SYN-${Math.floor(100000 + Math.random() * 900000)}`, age, gender, vitals: { hr, bp, spo2, temp }, symptoms, risk, complianceHash });
+                }, 1000);
               }}
-              className="w-full bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer"
+              className="w-full bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Ready to learn? Create Academic Account
+              <Cpu className={`h-3.5 w-3.5 ${isSynthesizing ? "animate-spin" : ""}`} />
+              <span>{isSynthesizing ? "Synthesizing Cohort Profiles..." : "Synthesize Profile"}</span>
             </button>
+
+            {/* Simulated synthetics output */}
+            {isSynthesizing && (
+              <div className="flex flex-col items-center justify-center py-6 space-y-2">
+                <span className="text-[10px] font-mono text-emerald-600 animate-pulse">GENERATING CRYPTOGRAPHIC COHORT METADATA...</span>
+                <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-1/2 h-full bg-emerald-500 animate-pulse rounded-full" />
+                </div>
+              </div>
+            )}
+
+            {syntheticResult && (
+              <div className="bg-slate-950 rounded-2xl border border-slate-800 p-4 font-mono text-[10px] text-slate-200 space-y-3 animate-scaleUp">
+                <div className="flex justify-between items-center border-b border-slate-900 pb-2 text-[8px] text-slate-500">
+                  <span className="flex items-center gap-1"><Terminal className="h-3 w-3 text-emerald-500" /> SYNTHETIC_COHORT_PROFILE_OUTPUT</span>
+                  <span>ID: {syntheticResult.id}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                  <div><span className="text-slate-500">GENDER_AGE:</span> {syntheticResult.gender}, {syntheticResult.age} years old</div>
+                  <div><span className="text-slate-500">COMPLIANCE:</span> HIPAA Decoupled</div>
+                  <div><span className="text-slate-500">HR_VITAL:</span> {syntheticResult.vitals.hr}</div>
+                  <div><span className="text-slate-500">BP_VITAL:</span> {syntheticResult.vitals.bp}</div>
+                  <div><span className="text-slate-500">SPO2_LEVEL:</span> {syntheticResult.vitals.spo2}</div>
+                  <div><span className="text-slate-500">TEMPERATURE:</span> {syntheticResult.vitals.temp}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500 block">SYMPTOMS:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {syntheticResult.symptoms.map((s: string, i: number) => (
+                      <span key={i} className="bg-slate-900 border border-slate-800 text-emerald-400 px-1.5 py-0.5 rounded text-[9px]">{s}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-slate-500">CLASSIFICATION:</span> <span className="text-yellow-400">{syntheticResult.risk}</span>
+                </div>
+                <div className="border-t border-slate-900 pt-2 text-[8px] text-slate-500 flex justify-between items-center">
+                  <span>SHA256: {syntheticResult.complianceHash}</span>
+                  <button 
+                    onClick={() => alert(`Cohort profile exported to research folder!\nSHA256 Hash Verified:\n${syntheticResult.complianceHash}`)}
+                    className="text-[8px] bg-slate-900 hover:bg-slate-800 text-emerald-400 font-extrabold px-2 py-1 rounded border border-emerald-500/20 cursor-pointer uppercase tracking-widest flex items-center gap-1"
+                  >
+                    <Download className="h-2 w-2" />
+                    <span>Export CSV/JSON</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => {
+                  setSyntheticResult(null);
+                  setSyntheticDept("Cardiology");
+                  setSyntheticSeverity("Moderate");
+                }}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Clear Output
+              </button>
+              <button
+                onClick={() => {
+                  setShowSyntheticsDemo(false);
+                  setIsRegistering(true);
+                  setSyntheticResult(null);
+                }}
+                className="flex-1 bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Access Full Synthetics Module
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Academic Proctoring Audits Demo Modal */}
+      {showProctoringDemo && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#E2E8F0] rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full text-slate-800 space-y-6 relative my-8">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-[#003B95]">
+                <Shield className="h-5 w-5 text-purple-500 animate-pulse" />
+                <h4 className="font-serif italic font-bold text-lg">Proctoring & Audit Simulator</h4>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowProctoringDemo(false);
+                  setProctorOption("");
+                }}
+                className="text-xs text-slate-400 hover:text-slate-600 font-extrabold uppercase tracking-widest cursor-pointer"
+              >
+                Close Sandbox
+              </button>
+            </div>
+
+            <p className="text-xs text-[#526071] leading-relaxed font-sans font-semibold">
+              Live classroom performance audit tools. Faculty members can monitor diagnostic decision speeds, trace specific student missteps, and address systemic diagnostic gaps instantly.
+            </p>
+
+            <div className="space-y-3">
+              <label className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Select Student Action to Proctor & Audit:</label>
+              <div className="flex flex-col gap-2">
+                {[
+                  { id: "A", title: "A: Ordered IV Furosemide diuresis + Continuous BiPAP ventilation", subtitle: "Correct guideline-directed therapy for fluid-overloaded HF" },
+                  { id: "B", title: "B: Ordered 1L Normal Saline bolus to correct mild tachycardia", subtitle: "Incorrect fluid expansion under subclinical pulmonary congestion" },
+                  { id: "C", title: "C: Ordered Albuterol bronchodilator nebulizer only", subtitle: "Incorrectly treated cardiac wheeze (asthma cardiale) as COPD" }
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setProctorOption(opt.id)}
+                    className={`p-3 text-left border rounded-xl transition-all cursor-pointer ${
+                      proctorOption === opt.id ? "border-purple-500 bg-purple-50/20 font-bold" : "hover:bg-slate-50 border-slate-200"
+                    }`}
+                  >
+                    <span className="text-xs font-bold text-slate-900 block font-sans">{opt.title}</span>
+                    <span className="text-[9px] text-[#64748B] leading-none block mt-0.5">{opt.subtitle}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {proctorOption && (
+              <div className="bg-slate-50 border border-slate-200/80 p-4 rounded-2xl space-y-4 animate-scaleUp">
+                <div className="flex justify-between items-center text-[10px] font-black text-[#003B95] font-sans">
+                  <span>LIVE FACULTY ATTENDING REPORT</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[8px] uppercase tracking-widest font-black ${
+                    proctorOption === "A" ? "bg-emerald-100 text-emerald-800" : proctorOption === "B" ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800"
+                  }`}>
+                    {proctorOption === "A" ? "Grade A - Pass" : proctorOption === "B" ? "Grade F - Critical Fail" : "Grade C - Unsatisfactory"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-[8px] text-slate-400 block uppercase font-mono">Student Score</span>
+                    <span className={`text-base font-black font-sans ${proctorOption === "A" ? "text-emerald-600" : proctorOption === "B" ? "text-red-600" : "text-yellow-600"}`}>
+                      {proctorOption === "A" ? "98 / 100" : proctorOption === "B" ? "15 / 100" : "45 / 100"}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-[8px] text-slate-400 block uppercase font-mono">Response Speed</span>
+                    <span className="text-base font-black text-slate-800 font-sans">
+                      {proctorOption === "A" ? "42 sec (Fast)" : proctorOption === "B" ? "188 sec (Delayed)" : "94 sec (Avg)"}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-[8px] text-slate-400 block uppercase font-mono">Peer Match</span>
+                    <span className="text-base font-black text-slate-800 font-sans">
+                      {proctorOption === "A" ? "88% Agree" : proctorOption === "B" ? "3% Agree" : "9% Agree"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-1 text-xs">
+                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Attending Clinical Feedback & Gap Analysis:</span>
+                  <div className={`p-3 rounded-xl text-[11px] leading-relaxed ${
+                    proctorOption === "A" ? "bg-emerald-50 text-emerald-900 border border-emerald-100" : proctorOption === "B" ? "bg-red-50 text-red-900 border border-red-100" : "bg-yellow-50 text-yellow-900 border border-yellow-100"
+                  }`}>
+                    {proctorOption === "A" ? (
+                      <p>✨ <strong>Pathology Resolved:</strong> Furosemide relieves severe preload and left ventricular filling pressure, allowing rapid re-oxygenation. Student shows strong hemodynamic instincts.</p>
+                    ) : proctorOption === "B" ? (
+                      <p>⚠️ <strong>Critical Diagnostic Gap:</strong> Administering a fluid volume bolus to an already decompensated, congested heart failure patient forces fluid into alveoli, inducing lethal cardiogenic shock.</p>
+                    ) : (
+                      <p>🔍 <strong>Differential Diagnosis Error:</strong> Treating cardiac wheezing as simple airway constriction (COPD/Asthma) delays correct diuresis. Volume monitoring training required.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => setProctorOption("")}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer flex items-center justify-center gap-2"
+              >
+                <RotateCcw className="h-3.5 w-3.5 text-slate-500" />
+                <span>Restart Proctoring</span>
+              </button>
+              <button
+                onClick={() => {
+                  setShowProctoringDemo(false);
+                  setIsRegistering(true);
+                  setProctorOption("");
+                }}
+                className="flex-1 bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 rounded-xl transition-all shadow-sm cursor-pointer"
+              >
+                Ready to Proctor? Create Faculty Account
+              </button>
+            </div>
           </div>
         </div>
       )}

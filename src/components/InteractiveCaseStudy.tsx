@@ -169,8 +169,11 @@ export default function InteractiveCaseStudy() {
       const storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
       let storedPerf: Record<string, { correct: number; total: number }> = {};
       try {
-        if (storedPerfStr && storedPerfStr !== "undefined") {
-          storedPerf = JSON.parse(storedPerfStr);
+        if (storedPerfStr && storedPerfStr !== "undefined" && storedPerfStr !== "null") {
+          const temp = JSON.parse(storedPerfStr);
+          if (temp && typeof temp === "object" && !Array.isArray(temp)) {
+            storedPerf = temp;
+          }
         }
       } catch (jsonErr) {
         console.error("Failed to parse stored performance in recordStats", jsonErr);

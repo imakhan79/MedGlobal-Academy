@@ -27,7 +27,7 @@ export default function KnowledgeSnapshot() {
   const loadStats = () => {
     try {
       let storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
-      if (!storedPerfStr || storedPerfStr === "undefined") {
+      if (!storedPerfStr || storedPerfStr === "undefined" || storedPerfStr === "null") {
         // Automatically preseed with realistic initial history so student isn't staring at empty screen
         localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
         storedPerfStr = JSON.stringify(PRESEEDED_PERFORMANCE);
@@ -35,7 +35,12 @@ export default function KnowledgeSnapshot() {
       
       let parsed = PRESEEDED_PERFORMANCE;
       try {
-        parsed = JSON.parse(storedPerfStr);
+        const temp = JSON.parse(storedPerfStr);
+        if (temp && typeof temp === "object" && !Array.isArray(temp)) {
+          parsed = temp;
+        } else {
+          localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
+        }
       } catch (jsonErr) {
         console.error("Corrupted local storage performance data, resetting.", jsonErr);
         localStorage.setItem("medglobal-mcq-performance", JSON.stringify(PRESEEDED_PERFORMANCE));
@@ -77,8 +82,11 @@ export default function KnowledgeSnapshot() {
       let storedPerfStr = localStorage.getItem("medglobal-mcq-performance");
       let currentPerf = PRESEEDED_PERFORMANCE;
       try {
-        if (storedPerfStr && storedPerfStr !== "undefined") {
-          currentPerf = JSON.parse(storedPerfStr);
+        if (storedPerfStr && storedPerfStr !== "undefined" && storedPerfStr !== "null") {
+          const temp = JSON.parse(storedPerfStr);
+          if (temp && typeof temp === "object" && !Array.isArray(temp)) {
+            currentPerf = temp;
+          }
         }
       } catch (e) {
         console.error("Error parsing stored performance in generateSnapshot:", e);
