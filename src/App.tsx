@@ -88,6 +88,25 @@ const HERO_IMAGES = [
   }
 ];
 
+const getCategoryBadgeClasses = (category: string) => {
+  switch (category) {
+    case "Medicine":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    case "Surgery":
+      return "bg-blue-50 text-blue-700 border-blue-200";
+    case "Gynecology":
+      return "bg-rose-50 text-rose-700 border-rose-200";
+    case "Pediatrics":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    case "Diagnostics":
+      return "bg-sky-50 text-sky-700 border-sky-200";
+    case "Auxiliary & Allied Health":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+    default:
+      return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+};
+
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
@@ -879,7 +898,7 @@ export default function App() {
                             className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
                           >
                             <div className="space-y-2">
-                              <span className="bg-white text-[#003B95] font-bold text-[9px] px-2.5 py-1 rounded border border-[#E2E8F0] uppercase tracking-widest">
+                              <span className={`font-bold text-[9px] px-2.5 py-1 rounded border uppercase tracking-widest ${getCategoryBadgeClasses(sp.category)}`}>
                                 {sp.category}
                               </span>
                               <h4 className="font-serif italic font-bold text-lg text-[#0F172A] pt-1">{sp.name}</h4>
@@ -925,7 +944,7 @@ export default function App() {
                               className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
                             >
                               <div className="space-y-2">
-                                <span className="bg-[#E0F2FE] text-[#0369A1] font-bold text-[9px] px-2.5 py-1 rounded border border-[#BAE6FD] uppercase tracking-widest">
+                                <span className={`font-bold text-[9px] px-2.5 py-1 rounded border uppercase tracking-widest ${getCategoryBadgeClasses(sp.category)}`}>
                                   {sp.category}
                                 </span>
                                 <h4 className="font-serif italic font-bold text-lg text-[#0F172A] pt-1">{sp.name}</h4>
