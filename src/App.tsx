@@ -124,6 +124,7 @@ export default function App() {
   // Quick State helpers
   const [showNotification, setShowNotification] = useState(true);
   const [selectedSpecialtyFilter, setSelectedSpecialtyFilter] = useState("All");
+  const [selectedSpecialtyIdForExams, setSelectedSpecialtyIdForExams] = useState<string | null>(null);
 
   // Typographical Preferences States
   const [fontFamily, setFontFamily] = useState<"font-sans" | "font-serif" | "font-readable" | "font-mono">("font-sans");
@@ -607,7 +608,11 @@ export default function App() {
                           key={sp.id}
                           whileHover={{ y: -4, scale: 1.01, borderColor: "#003B95" }}
                           transition={{ duration: 0.18 }}
-                          className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3"
+                          onClick={() => {
+                            setSelectedSpecialtyIdForExams(sp.id);
+                            setActiveTab("exams");
+                          }}
+                          className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
                         >
                           <div className="space-y-2">
                             <span className="bg-white text-[#003B95] font-bold text-[9px] px-2.5 py-1 rounded border border-[#E2E8F0] uppercase tracking-widest">
@@ -617,7 +622,11 @@ export default function App() {
                             <p className="text-xs text-[#64748B] leading-relaxed line-clamp-2 font-medium">{sp.description}</p>
                           </div>
                           <button
-                            onClick={() => setActiveTab("exams")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedSpecialtyIdForExams(sp.id);
+                              setActiveTab("exams");
+                            }}
                             className="text-[10px] uppercase tracking-widest font-extrabold text-[#003B95] flex items-center gap-1.5 hover:underline transition-all"
                           >
                             <span>Study Curriculum</span>
@@ -679,7 +688,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.22 }}
                 >
-                  <AssessmentEngine />
+                  <AssessmentEngine initialSpecialtyId={selectedSpecialtyIdForExams} />
                 </motion.div>
               )}
 

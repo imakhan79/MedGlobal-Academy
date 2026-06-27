@@ -16,12 +16,25 @@ const mapDifficultyToSeed = (diff: "Easy" | "Intermediate" | "Board-Level"): "Ea
   return "Hard";
 };
 
-export default function AssessmentEngine() {
+interface AssessmentEngineProps {
+  initialSpecialtyId?: string | null;
+}
+
+export default function AssessmentEngine({ initialSpecialtyId }: AssessmentEngineProps = {}) {
   const [activeTab, setActiveTab] = useState<"mcq" | "osce" | "cases" | "analytics">("mcq");
 
   // MCQ State
   const [selectedExam, setSelectedExam] = useState("usmle1");
   const [selectedSpecialty, setSelectedSpecialty] = useState("Cardiology");
+
+  useEffect(() => {
+    if (initialSpecialtyId) {
+      const match = MEDICAL_SPECIALTIES.find(sp => sp.id === initialSpecialtyId);
+      if (match) {
+        setSelectedSpecialty(match.name);
+      }
+    }
+  }, [initialSpecialtyId]);
   const [difficulty, setDifficulty] = useState<"Easy" | "Intermediate" | "Board-Level">("Intermediate");
   const [currentMCQ, setCurrentMCQ] = useState<MCQ>(PRESEEDED_MCQS[0]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
