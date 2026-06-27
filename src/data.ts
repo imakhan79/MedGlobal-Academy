@@ -14,7 +14,10 @@ export const MEDICAL_SPECIALTIES: MedicalSpecialty[] = [
   { id: "derma", name: "Dermatology", category: "Diagnostics", description: "Skin disorders, melanomas, autoimmune rashes, and biopsies.", icon: "Sparkles" },
   { id: "psych", name: "Psychiatry", category: "Other", description: "Mental health disorders, pharmacotherapy, and behavioral sciences.", icon: "Brain" },
   { id: "neuro", name: "Neurology", category: "Medicine", description: "Central and peripheral nervous systems, stroke, epilepsy, and neuropathy.", icon: "Tv" },
-  { id: "em", name: "Emergency Medicine", category: "Medicine", description: "Trauma resuscitation, acute cardiovascular support, and urgent triage.", icon: "Zap" }
+  { id: "em", name: "Emergency Medicine", category: "Medicine", description: "Trauma resuscitation, acute cardiovascular support, and urgent triage.", icon: "Zap" },
+  { id: "physio", name: "Physiotherapy", category: "Auxiliary & Allied Health", description: "Physical rehabilitation, kinetic therapies, pain management, and musculoskeletal recovery.", icon: "Accessibility" },
+  { id: "radio", name: "Radiology", category: "Auxiliary & Allied Health", description: "Diagnostic imaging, CT scans, MRIs, ultrasound, and interventional procedures.", icon: "Eye" },
+  { id: "nutrition", name: "Nutrition & Dietetics", category: "Auxiliary & Allied Health", description: "Clinical dietetics, metabolic nutrition, parenteral support, and eating disorders.", icon: "Apple" }
 ];
 
 export const LICENSE_EXAMS = [
@@ -33,6 +36,45 @@ export const LICENSE_EXAMS = [
 ];
 
 export const PRESEEDED_MCQS: MCQ[] = [
+  {
+    question: "A 45-year-old male presents with right shoulder pain and limitation in active abduction past 90 degrees. Passive range of motion is fully preserved. On physical examination, there is weakness during resistive external rotation and a positive 'Drop Arm' sign. Which rotator cuff tendon is most likely injured?",
+    options: [
+      "Supraspinatus",
+      "Infraspinatus",
+      "Subscapularis",
+      "Teres minor"
+    ],
+    correctAnswer: 0,
+    rationale: "The supraspinatus tendon is the most commonly injured rotator cuff tendon, typically presenting with painful or limited active abduction (especially between 60-120 degrees, the painful arc) and a positive Drop Arm test, while passive movement remains normal.",
+    difficulty: "Medium",
+    specialty: "Physiotherapy"
+  },
+  {
+    question: "A 68-year-old female with a history of heavy smoking presents with sudden-onset severe headache and confusion. An emergency non-contrast head CT is performed. Which of the following findings on a non-contrast head CT is most characteristic of an acute subarachnoid hemorrhage?",
+    options: [
+      "Hyperdense fluid within the cerebral sulci and basal cisterns",
+      "Hypodense wedge-shaped area in the middle cerebral artery territory",
+      "Crescent-shaped extra-axial collection crossing suture lines",
+      "Biconvex lens-shaped hyperdense collection limited by suture lines"
+    ],
+    correctAnswer: 0,
+    rationale: "Acute blood appears hyperdense (bright white) on a non-contrast CT. In a subarachnoid hemorrhage, blood extravasates into the subarachnoid space, showing up as hyperdensity within the basal cisterns, sylvian fissures, and cerebral sulci.",
+    difficulty: "Hard",
+    specialty: "Radiology"
+  },
+  {
+    question: "A 42-year-old chronic alcoholic patient is admitted to the hospital with delirium, severe ataxia, and ophthalmoplegia. Before administering intravenous dextrose, which of the following vitamins must be co-administered immediately to prevent Wernicke-Korsakoff syndrome?",
+    options: [
+      "Thiamine (Vitamin B1)",
+      "Pyridoxine (Vitamin B6)",
+      "Cyanocobalamin (Vitamin B12)",
+      "Folate (Vitamin B9)"
+    ],
+    correctAnswer: 0,
+    rationale: "Thiamine is a cofactor for several key enzymes in glucose metabolism (including pyruvate dehydrogenase). In thiamine-deficient patients (such as severe alcoholics), administering a dextrose load without thiamine can deplete remaining thiamine stores and precipitate acute Wernicke encephalopathy.",
+    difficulty: "Medium",
+    specialty: "Nutrition & Dietetics"
+  },
   {
     question: "A 54-year-old female presents with progressive exertional dyspnea. She reports having a history of rheumatic fever as a child. On auscultation, a low-pitched, rumbling diastolic murmur is heard at the apex, preceded by an opening snap. What is the most likely diagnosis?",
     options: [

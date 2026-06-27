@@ -15,7 +15,7 @@ export enum UserRole {
 export interface MedicalSpecialty {
   id: string;
   name: string;
-  category: "Medicine" | "Surgery" | "Gynecology" | "Pediatrics" | "Diagnostics" | "Other";
+  category: "Medicine" | "Surgery" | "Gynecology" | "Pediatrics" | "Diagnostics" | "Other" | "Auxiliary & Allied Health";
   description: string;
   icon: string;
 }

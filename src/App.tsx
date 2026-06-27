@@ -843,7 +843,7 @@ export default function App() {
                   )}
 
                   {/* Browse Medical Departments / Specialties */}
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between border-b border-[#E2E8F0] pb-3 gap-3">
                       <div>
                         <h3 className="font-serif italic font-bold text-[#003B95] text-xl md:text-2xl">Specialist Portals</h3>
@@ -851,12 +851,12 @@ export default function App() {
                       </div>
 
                       {/* Specialty Category Filter Switch */}
-                      <div className="flex gap-1 bg-[#F1F5F9] p-1 rounded-lg border border-[#E2E8F0] shrink-0 self-start sm:self-auto">
-                        {["All", "Medicine", "Surgery", "Gynecology", "Pediatrics"].map(cat => (
+                      <div className="flex gap-1 bg-[#F1F5F9] p-1 rounded-lg border border-[#E2E8F0] shrink-0 self-start sm:self-auto overflow-x-auto max-w-full">
+                        {["All", "Medicine", "Surgery", "Gynecology", "Pediatrics", "Auxiliary & Allied Health"].map(cat => (
                           <button
                             key={cat}
                             onClick={() => setSelectedSpecialtyFilter(cat)}
-                            className={`text-[10px] uppercase tracking-wider font-bold py-1.5 px-3 rounded-md transition-all ${selectedSpecialtyFilter === cat ? "bg-white text-[#003B95] shadow-sm border border-[#E2E8F0]" : "text-[#64748B] hover:text-[#0F172A]"}`}
+                            className={`text-[10px] uppercase tracking-wider font-bold py-1.5 px-3 rounded-md transition-all whitespace-nowrap ${selectedSpecialtyFilter === cat ? "bg-white text-[#003B95] shadow-sm border border-[#E2E8F0]" : "text-[#64748B] hover:text-[#0F172A]"}`}
                           >
                             {cat}
                           </button>
@@ -864,39 +864,89 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {filteredSpecialties.map(sp => (
-                        <motion.div
-                          key={sp.id}
-                          whileHover={{ y: -4, scale: 1.01, borderColor: "#003B95" }}
-                          transition={{ duration: 0.18 }}
-                          onClick={() => {
-                            setSelectedSpecialtyIdForExams(sp.id);
-                            setActiveTab("exams");
-                          }}
-                          className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
-                        >
-                          <div className="space-y-2">
-                            <span className="bg-white text-[#003B95] font-bold text-[9px] px-2.5 py-1 rounded border border-[#E2E8F0] uppercase tracking-widest">
-                              {sp.category}
-                            </span>
-                            <h4 className="font-serif italic font-bold text-lg text-[#0F172A] pt-1">{sp.name}</h4>
-                            <p className="text-xs text-[#64748B] leading-relaxed line-clamp-2 font-medium">{sp.description}</p>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
+                    {/* Primary Specialties Grid */}
+                    {filteredSpecialties.filter(sp => sp.category !== "Auxiliary & Allied Health").length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {filteredSpecialties.filter(sp => sp.category !== "Auxiliary & Allied Health").map(sp => (
+                          <motion.div
+                            key={sp.id}
+                            whileHover={{ y: -4, scale: 1.01, borderColor: "#003B95" }}
+                            transition={{ duration: 0.18 }}
+                            onClick={() => {
                               setSelectedSpecialtyIdForExams(sp.id);
                               setActiveTab("exams");
                             }}
-                            className="text-[10px] uppercase tracking-widest font-extrabold text-[#003B95] flex items-center gap-1.5 hover:underline transition-all"
+                            className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
                           >
-                            <span>Study Curriculum</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
+                            <div className="space-y-2">
+                              <span className="bg-white text-[#003B95] font-bold text-[9px] px-2.5 py-1 rounded border border-[#E2E8F0] uppercase tracking-widest">
+                                {sp.category}
+                              </span>
+                              <h4 className="font-serif italic font-bold text-lg text-[#0F172A] pt-1">{sp.name}</h4>
+                              <p className="text-xs text-[#64748B] leading-relaxed line-clamp-2 font-medium">{sp.description}</p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedSpecialtyIdForExams(sp.id);
+                                setActiveTab("exams");
+                              }}
+                              className="text-[10px] uppercase tracking-widest font-extrabold text-[#003B95] flex items-center gap-1.5 hover:underline transition-all"
+                            >
+                              <span>Study Curriculum</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Dedicated Auxiliary & Allied Health Specialties Section */}
+                    {filteredSpecialties.some(sp => sp.category === "Auxiliary & Allied Health") && (
+                      <div className="space-y-4 pt-2">
+                        <div className="border-b border-[#E2E8F0]/80 pb-2">
+                          <h4 className="font-serif italic font-bold text-[#003B95] text-lg flex items-center gap-2">
+                            <Sparkles className="h-4.5 w-4.5 text-[#003B95]" />
+                            <span>Auxiliary & Allied Health Portals</span>
+                          </h4>
+                          <p className="text-[10px] uppercase tracking-widest text-[#64748B] font-extrabold mt-0.5">Specialized rehabilitation, diagnostic imaging, and metabolic nutrition curriculums</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          {filteredSpecialties.filter(sp => sp.category === "Auxiliary & Allied Health").map(sp => (
+                            <motion.div
+                              key={sp.id}
+                              whileHover={{ y: -4, scale: 1.01, borderColor: "#003B95" }}
+                              transition={{ duration: 0.18 }}
+                              onClick={() => {
+                                setSelectedSpecialtyIdForExams(sp.id);
+                                setActiveTab("exams");
+                              }}
+                              className="bg-[#F8FAFC] border border-[#E2E8F0] p-5 rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between space-y-3 cursor-pointer"
+                            >
+                              <div className="space-y-2">
+                                <span className="bg-[#E0F2FE] text-[#0369A1] font-bold text-[9px] px-2.5 py-1 rounded border border-[#BAE6FD] uppercase tracking-widest">
+                                  {sp.category}
+                                </span>
+                                <h4 className="font-serif italic font-bold text-lg text-[#0F172A] pt-1">{sp.name}</h4>
+                                <p className="text-xs text-[#64748B] leading-relaxed line-clamp-2 font-medium">{sp.description}</p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedSpecialtyIdForExams(sp.id);
+                                  setActiveTab("exams");
+                                }}
+                                className="text-[10px] uppercase tracking-widest font-extrabold text-[#003B95] flex items-center gap-1.5 hover:underline transition-all"
+                              >
+                                <span>Study Curriculum</span>
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </button>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Global Licensing Exams Catalog list */}
