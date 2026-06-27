@@ -74,6 +74,67 @@ export interface DrugProfile {
   pregnancyCategory: string;
   lactationSafety: string;
   fdaStatus: string;
+  atcCode?: string;
+  rxnormCode?: string;
+  pharmacokinetics?: {
+    bioavailability: string;
+    halfLife: string;
+    metabolism: string;
+    excretion: string;
+    proteinBinding: string;
+    onsetAction: string;
+    durationAction: string;
+    peakTime: string;
+    storageConditions: string;
+    shelfLife: string;
+  };
+  pediatricElderlyRenal?: {
+    pediatrics: string;
+    elderly: string;
+    renalImpairment: string;
+    liverDisease: string;
+  };
+  overdoseManagement?: {
+    symptoms: string;
+    management: string;
+  };
+  pharmacyCost?: {
+    alternatives: string;
+    costRange: string;
+    insuranceCoverage: string;
+  };
+}
+
+export interface ICD10Mapping {
+  diseaseName: string;
+  icd10Code: string;
+  icd11Code: string;
+  description: string;
+  parentCategory: string;
+  subcategory: string;
+  chapter: string;
+  billableStatus: string;
+  clinicalDescription: string;
+  diagnosticCriteria: string;
+  associatedSymptoms: string;
+  complications: string;
+  guidelines: string;
+  firstLineMeds: string[];
+  secondLineMeds: string[];
+  thirdLineMeds: string[];
+  alternativeMeds: string[];
+  emergencyMeds: string[];
+  contraindicatedMeds: string[];
+  monitoringParameters: string;
+  followUpSchedule: string;
+}
+
+export interface DepartmentProfile {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  diagnoses: ICD10Mapping[];
 }
 
 export interface MedicalTerm {

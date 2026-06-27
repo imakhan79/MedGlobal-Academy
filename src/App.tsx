@@ -26,6 +26,7 @@ import TypographyController from "./components/TypographyController";
 import RegistrationFlow from "./components/RegistrationFlow";
 import RoleDashboards from "./components/RoleDashboards";
 import SupabaseHub from "./components/SupabaseHub";
+import MedicalKnowledgeSystem from "./components/MedicalKnowledgeSystem";
 
 // Lucide Icons
 import {
@@ -63,7 +64,7 @@ import {
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase"
+    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase" | "university"
   >("dashboard");
 
   // User Profile configuration
@@ -271,11 +272,11 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto flex gap-3 scrollbar-none py-2">
               {[
                 { id: "dashboard", label: "Learning Portals", icon: Layers },
+                { id: "university", label: "Medical University", icon: BookOpen },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
                 { id: "ai", label: "Clinical Assistants", icon: Activity },
                 { id: "research", label: "Research Academy", icon: FileText },
                 { id: "drugs", label: "Pharma Center", icon: Heart },
-                { id: "dictionary", label: "Medical Dictionary", icon: BookOpen },
                 { id: "credentials", label: "Credentials & Plans", icon: Award },
                 { id: "supabase", label: "Supabase Cloud DB", icon: Database },
                 { id: "admin", label: "Faculty Hub", icon: Users }
@@ -655,6 +656,18 @@ export default function App() {
                       ))}
                     </div>
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === "university" && (
+                <motion.div
+                  key="university"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <MedicalKnowledgeSystem />
                 </motion.div>
               )}
 

@@ -30,6 +30,24 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
   // Canvas visualizer refs
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animationRef = useRef<number | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const mouseXRef = useRef<number | null>(null);
+  const mouseYRef = useRef<number | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    mouseXRef.current = x;
+    mouseYRef.current = y;
+  };
+
+  const handleMouseLeave = () => {
+    mouseXRef.current = null;
+    mouseYRef.current = null;
+  };
 
   // Sync settings based on the current demoOption
   useEffect(() => {
@@ -250,12 +268,12 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
     if (!ctx) return;
 
     let localTime = 0;
-    const wavePoints: number[] = [];
+    const wavePoints: { y: number; label: string; desc: string }[] = [];
     const maxPoints = 250;
 
     // Pre-populate with flat baseline
     for (let i = 0; i < maxPoints; i++) {
-      wavePoints.push(0);
+      wavePoints.push({ y: 0, label: "Baseline", desc: "Quiescent period of the cardiac cycle (diastasis)." });
     }
 
     const render = () => {
@@ -277,6 +295,9 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
 
       // Generate the synchronized signal value
       let yVal = 0;
+      let label = "Baseline";
+      let desc = "Quiescent period of the cardiac cycle (diastasis).";
+
       const k = Math.min(1.0, cycleDuration / 0.75);
       const s1Dur = 0.12 * k;
       const s2Start = 0.30 * k;
@@ -294,27 +315,37 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
         const p = currentCycleTime / s1Dur;
         const amp = stethoscopeMode === "diaphragm" ? 0.7 : 1.0; // Slightly attenuated in high-pass
         yVal = Math.sin(p * Math.PI * 4) * Math.exp(-p * 3) * amp;
+        label = "S1 Sound (Lub)";
+        desc = "Closure of mitral/tricuspid valves. Start of systole.";
       } else if (hasMurmur && currentCycleTime >= murmurStart && currentCycleTime < murmurEnd) {
         // Systolic Murmur Noise wave
         const p = (currentCycleTime - murmurStart) / (murmurEnd - murmurStart);
         const amp = stethoscopeMode === "bell" ? 0.08 : 0.4; // Heavily attenuated in bell's lowpass filter
         yVal = (Math.random() * 2 - 1) * Math.sin(p * Math.PI) * amp;
+        label = "Systolic Murmur";
+        desc = "Turbulent high-frequency flow across aortic/mitral valve.";
       } else if (currentCycleTime >= s2Start && currentCycleTime < s2Start + s2Dur) {
         // S2 Wave (Dub)
         const p = (currentCycleTime - s2Start) / s2Dur;
         yVal = Math.sin(p * Math.PI * 5) * Math.exp(-p * 3) * 0.8;
+        label = "S2 Sound (Dub)";
+        desc = "Closure of aortic/pulmonic valves. Start of diastole.";
       } else if (hasS3 && currentCycleTime >= s3Start && currentCycleTime < s3Start + s3Dur) {
         // S3 Gallop Wave (Ta)
         const p = (currentCycleTime - s3Start) / s3Dur;
         const amp = stethoscopeMode === "diaphragm" ? 0.05 : 0.5; // Heavily attenuated in diaphragm's highpass filter
         yVal = Math.sin(p * Math.PI * 3) * Math.exp(-p * 3) * amp;
+        label = "S3 Gallop Sound";
+        desc = "Pathological third sound. Rapid volume filling into a stiff, overloaded ventricle.";
       } else {
         // Flat baseline with minor somatic rumble
         yVal = (Math.random() * 2 - 1) * 0.015;
+        label = "Baseline";
+        desc = "Ventricular diastole diastasis quiescent phase.";
       }
 
       // Add point to scrolling array
-      wavePoints.push(yVal);
+      wavePoints.push({ y: yVal, label, desc });
       if (wavePoints.length > maxPoints) {
         wavePoints.shift();
       }
@@ -363,7 +394,7 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
         const x = (i / (wavePoints.length - 1)) * W;
         // Map normal values (-1.5 to 1.5) to visual space
         const amplitude = H * 0.35;
-        const y = H / 2 - wavePoints[i] * amplitude;
+        const y = H / 2 - wavePoints[i].y * amplitude;
 
         if (i === 0) {
           ctx.moveTo(x, y);
@@ -377,7 +408,7 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
       if (wavePoints.length > 0) {
         const lastIndex = wavePoints.length - 1;
         const lastX = W;
-        const lastY = H / 2 - wavePoints[lastIndex] * (H * 0.35);
+        const lastY = H / 2 - wavePoints[lastIndex].y * (H * 0.35);
         ctx.fillStyle = "#34d399";
         ctx.shadowColor = "#34d399";
         ctx.shadowBlur = 8;
@@ -385,6 +416,63 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
         ctx.arc(lastX - 2, lastY, 4, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0; // reset shadow
+      }
+
+      // Draw vertical hairline crosshair and update direct HTML tooltip if hovered
+      if (mouseXRef.current !== null && tooltipRef.current) {
+        const x = mouseXRef.current;
+        const i = Math.round((x / W) * (wavePoints.length - 1));
+        if (i >= 0 && i < wavePoints.length) {
+          const pt = wavePoints[i];
+          const y = H / 2 - pt.y * (H * 0.35);
+
+          // Draw vertical interactive trace line on canvas
+          ctx.strokeStyle = "rgba(52, 211, 153, 0.45)";
+          ctx.setLineDash([3, 3]);
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, H);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Draw pinpoint intersection circle
+          ctx.fillStyle = "#34d399";
+          ctx.shadowColor = "#34d399";
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Update tooltips
+          const tooltipEl = tooltipRef.current;
+          tooltipEl.style.display = "block";
+
+          // Calculate correct tooltip positioning
+          const tooltipWidth = 180;
+          let leftPos = x - 20;
+          if (leftPos + tooltipWidth > W) {
+            leftPos = W - tooltipWidth - 8;
+          }
+          if (leftPos < 8) {
+            leftPos = 8;
+          }
+
+          let topPos = y - 55;
+          if (topPos < 5) {
+            topPos = y + 15; // fallback below if too high
+          }
+
+          tooltipEl.style.transform = `translate(${leftPos}px, ${topPos}px)`;
+
+          const labelEl = tooltipEl.querySelector("#tooltip-label");
+          const descEl = tooltipEl.querySelector("#tooltip-desc");
+          if (labelEl) labelEl.textContent = pt.label;
+          if (descEl) descEl.textContent = pt.desc;
+        }
+      } else if (tooltipRef.current) {
+        tooltipRef.current.style.display = "none";
       }
 
       // Display Labels for sound cycles
@@ -470,13 +558,30 @@ export default function CardiacAuscultation({ bpm, demoOption }: CardiacAusculta
       }`}>
         <canvas 
           ref={canvasRef} 
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
           className={`w-full h-24 block cursor-crosshair transition-all duration-300 ${
             isPlaying ? "opacity-100" : "opacity-75"
           }`}
           title="Cardiac Phonocardiogram (PCG) Oscilloscope"
         />
+
+        {/* Dynamic High Performance DOM Tooltip */}
+        <div 
+          ref={tooltipRef}
+          className="absolute pointer-events-none bg-slate-950/95 border border-emerald-500/35 rounded-lg p-2 shadow-2xl text-left hidden transition-opacity duration-200 z-10 max-w-[180px]"
+          style={{ top: 0, left: 0 }}
+        >
+          <div className="text-[10px] font-bold font-mono text-emerald-400 mb-0.5" id="tooltip-label">
+            S1 Sound
+          </div>
+          <div className="text-[9px] text-slate-300 leading-snug font-sans" id="tooltip-desc">
+            Lub: Closure of mitral and tricuspid valves.
+          </div>
+        </div>
+
         {/* Real-time annotation indicators overlapping the canvas */}
-        <div className="absolute top-2 right-2 flex gap-1.5">
+        <div className="absolute top-2 right-2 flex gap-1.5 pointer-events-none">
           <span className="px-1.5 py-0.5 rounded-sm bg-slate-950/80 border border-slate-800 text-[8px] font-mono text-slate-400 uppercase">
             PCG Monitor
           </span>
