@@ -35,6 +35,62 @@ function getAIClient(): GoogleGenAI | null {
   return aiClient;
 }
 
+// Robust helper function with retry logic and model fallback to handle 503/429 transient errors
+async function generateContentWithRetry(
+  client: GoogleGenAI,
+  params: {
+    model?: string;
+    contents: any;
+    config?: any;
+  }
+): Promise<any> {
+  const primaryModel = params.model || "gemini-3.5-flash";
+  const backupModel = "gemini-3.1-flash-lite";
+  const maxRetries = 2;
+
+  async function tryModel(modelName: string): Promise<any> {
+    let lastError: any = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = Math.pow(2, attempt) * 500 + Math.random() * 200;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          console.warn(`Retrying Gemini request on ${modelName} (attempt ${attempt}/${maxRetries})...`);
+        }
+        
+        const response = await client.models.generateContent({
+          ...params,
+          model: modelName,
+        });
+        return response;
+      } catch (error: any) {
+        lastError = error;
+        const statusCode = error.status || error.statusCode || (error.error && error.error.code);
+        const isTransient = statusCode === 429 || statusCode === 503 || statusCode === 500 || !statusCode;
+        
+        console.error(`Gemini call failed for ${modelName} (attempt ${attempt}): ${error.message || error}`);
+        
+        if (!isTransient) {
+          throw error;
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  try {
+    return await tryModel(primaryModel);
+  } catch (primaryError) {
+    console.warn(`Primary model ${primaryModel} failed. Falling back to backup model ${backupModel}...`);
+    try {
+      return await tryModel(backupModel);
+    } catch (backupError) {
+      console.error(`Backup model ${backupModel} also failed.`);
+      throw primaryError;
+    }
+  }
+}
+
 // Simulated High-Quality Medical Answers (fallback if API key is missing)
 const SIMULATED_RESPONSES: Record<string, string> = {
   tutor: `**MedGlobal AI Medical Tutor Response:**\n\nIn clinical medicine, understanding **Hyperkalemia** is critical. \n\n### Etiology\n* **Reduced Renal Excretion**: Acute kidney injury (AKI), Chronic kidney disease (CKD), and aldosterone deficiency or resistance (e.g., ACE inhibitors, ARBs, Spironolactone).\n* **Transcellular Shifts**: Metabolic acidosis (where H+ enters cells in exchange for K+), insulin deficiency, or cell lysis (rhabdomyolysis, tumor lysis syndrome).\n\n### Clinical Presentation\nOften asymptomatic until severe. Symptoms include muscle weakness, flaccid paralysis, and cardiac conduction abnormalities.\n\n### ECG Findings\n1. **Mild (5.5 - 6.5 mEq/L)**: Peaked T-waves, prolonged PR interval.\n2. **Moderate (6.5 - 7.0 mEq/L)**: Loss of P-wave, prolonged QRS complex.\n3. **Severe (> 7.0 mEq/L)**: "Sine-wave" pattern progressing to ventricular fibrillation or asystole.\n\n### Treatment Protocol\n* **Stabilize Myocardium**: Calcium gluconate (10% IV over 5-10 mins). Does not lower K+, but raises cardiac threshold.\n* **Shift K+ Intracellularly**: IV Insulin (10 units regular) + 50% Dextrose, or inhaled Beta-2 agonists.\n* **Eliminate K+ from Body**: Loop diuretics (Furosemide), gastrointestinal cation exchangers, or hemodialysis.`,
@@ -64,7 +120,7 @@ User request: ${userMessage}
 
 Please write a highly detailed, professional, structured medical response with references if possible.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: formattedPrompt,
     });
@@ -147,7 +203,7 @@ The response must be in JSON format matching this schema:
 
 Do not include any markdown wrap or extra text. Just output the clean JSON.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -213,7 +269,7 @@ If they got it correct, praise their logic and reinforce high-yield board-style 
 If they got it wrong, gently explain why their selected option is incorrect (highlighting clinical key differentiators/lookalikes) and detail why the correct answer is the gold standard choice. 
 Include a brief clinical takeaway section at the end. Use clean Markdown formatting with bold terms for readability.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
     });
@@ -274,7 +330,7 @@ The student doctor asks: "${userInput}"
 Respond naturally in character as a worried patient. Do not use advanced medical terminology that a patient wouldn't know. Stay consistent with your diagnosis. Limit to 2-3 sentences.`;
     }
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
     });
@@ -338,7 +394,7 @@ Format the response strictly as a JSON object with this exact schema:
 
 Ensure all fields are fully filled, professional, and reference-accurate. Do not wrap in markdown or write additional text. Return raw JSON.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -506,7 +562,7 @@ Format the response strictly as a JSON object with this exact schema:
 
 Make all details highly accurate, professional, and reference-ready. Return only the raw JSON. No markdown wraps or text.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -690,7 +746,7 @@ Provide a textual synthesis in clean Markdown format with the following sections
 
 Ensure the tone is supportive, highly intellectual, and clinically precise. Keep the summary concise but extremely valuable. Return only the raw Markdown text.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
     });
@@ -794,7 +850,7 @@ The response must be in JSON format matching this schema:
 
 Do not include any markdown wrap or extra text. Just output the clean JSON.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -1184,7 +1240,7 @@ Format the response strictly as a JSON object with this exact schema:
 
 Make sure options contain one clearly correct answer based on established guidelines (AHA, ACC, ATS, KDIGO, etc.) and three highly plausible distractors. Avoid conversational wraps or text. Return only raw JSON.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -1377,7 +1433,7 @@ Format the evaluation strictly as a JSON object with this exact schema:
 
 Make all comments highly instructive, educational, and clinically rigorous. Return only raw JSON. No markdown wrappers.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {
@@ -1572,7 +1628,7 @@ Return a JSON object matching this schema:
 
 Ensure the response contains ONLY raw JSON, conforming exactly to the schema.`;
 
-      const response = await client.models.generateContent({
+      const response = await generateContentWithRetry(client, {
         model: "gemini-3.5-flash",
         contents: prompt,
         config: {
@@ -1666,7 +1722,7 @@ Evaluate this decision and output a JSON response containing:
 
 Ensure the response contains ONLY raw JSON, conforming exactly to the schema.`;
 
-    const response = await client.models.generateContent({
+    const response = await generateContentWithRetry(client, {
       model: "gemini-3.5-flash",
       contents: prompt,
       config: {

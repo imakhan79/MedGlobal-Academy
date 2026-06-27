@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { DEMO_ACCOUNTS } from "./data/demoAccounts";
 
 // Import custom sub-components
+import CardiacAuscultation from "./components/CardiacAuscultation";
 import AIDialogs from "./components/AIDialogs";
 import AssessmentEngine from "./components/AssessmentEngine";
 import ResearchPortal from "./components/ResearchPortal";
@@ -1115,6 +1116,12 @@ export default function App() {
                 * Tracks physiological feedback loop of heart rate (HR) and blood oxygen saturation (SpO2) across therapeutic intervals.
               </p>
             </div>
+
+            {/* High-fidelity Cardiac Auscultation Simulator */}
+            <CardiacAuscultation 
+              bpm={demoOption === "furosemide" ? 74 : demoOption === "hydration" ? 110 : 82} 
+              demoOption={demoOption} 
+            />
 
             <div className="space-y-3">
               <label className="text-[9px] font-extrabold uppercase tracking-widest text-[#64748B] block">Select Your Treatment Choice:</label>
