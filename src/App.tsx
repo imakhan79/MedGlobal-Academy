@@ -61,6 +61,33 @@ import {
   ChevronUp
 } from "lucide-react";
 
+const HERO_IMAGES = [
+  {
+    url: "https://images.pexels.com/photos/3825586/pexels-photo-3825586.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    title: "Clinical Wards",
+    tag: "High-Fidelity Virtual Simulations",
+    desc: "Test complex patient symptoms and real-time hemodynamic responses in a risk-free, immersive virtual ward playground."
+  },
+  {
+    url: "https://images.pexels.com/photos/7089017/pexels-photo-7089017.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    title: "Physiological Feedback",
+    tag: "Active Patient Hemodynamics",
+    desc: "Observe dynamic cellular, cardiac, and arterial responses across 50+ medical specialties with microsecond feedback accuracy."
+  },
+  {
+    url: "https://images.pexels.com/photos/4056816/pexels-photo-4056816.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    title: "Board Preparation",
+    tag: "Adaptive USMLE Learning Core",
+    desc: "Hone diagnostic instincts and complete official certification paths with Mayo Clinic-level Peer Reviewed curriculums."
+  },
+  {
+    url: "https://images.pexels.com/photos/3913025/pexels-photo-3913025.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    title: "Surgical Curriculums",
+    tag: "Proctored Skill Tracking",
+    desc: "Deploy clinical case templates, track team struggle indexes, and issue verifiable medical study credentials."
+  }
+];
+
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
@@ -85,6 +112,27 @@ export default function App() {
   const [demoOption, setDemoOption] = useState<string>("");
   const [isVitalsRecalculating, setIsVitalsRecalculating] = useState(false);
   const [showClinicalHistory, setShowClinicalHistory] = useState(false);
+
+  // Hero page states for clinical visuals
+  const [activeHeroImage, setActiveHeroImage] = useState(0);
+  const [ecgHeartRate, setEcgHeartRate] = useState(72);
+  const [ecgCondition, setEcgCondition] = useState<"Normal" | "Bradycardia" | "Tachycardia">("Normal");
+
+  useEffect(() => {
+    let interval: any;
+    if (!isRegistered) {
+      interval = setInterval(() => {
+        setEcgHeartRate(prev => {
+          const target = ecgCondition === "Normal" ? 72 : ecgCondition === "Bradycardia" ? 48 : 134;
+          const delta = target - prev;
+          const step = Math.sign(delta) * Math.min(Math.abs(delta), 4);
+          const noise = Math.floor(Math.random() * 3) - 1;
+          return Math.max(30, Math.min(200, prev + step + noise));
+        });
+      }, 800);
+    }
+    return () => clearInterval(interval);
+  }, [ecgCondition, isRegistered]);
 
   // Trigger pulse recalculation whenever demoOption changes
   useEffect(() => {
@@ -323,129 +371,343 @@ export default function App() {
             </div>
           ) : (
             <div className="w-full space-y-12 py-6 md:py-12 animate-fadeIn" id="homepage-landing-layout">
-              {/* BEAUTIFUL COMPACT HERO SECTION */}
-              <div className="bg-gradient-to-br from-[#002B70] via-[#003B95] to-[#011B45] text-white rounded-[2rem] p-8 md:p-14 shadow-2xl relative overflow-hidden border border-blue-900/40">
-                {/* Visual Glassmorphism Accents */}
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl pointer-events-none -mr-40 -mt-40 z-0" />
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-500/10 rounded-full blur-2xl pointer-events-none -ml-20 -mb-20 z-0" />
-                
-                <div className="absolute right-0 top-0 opacity-[0.04] pointer-events-none transform translate-x-12 -translate-y-6 z-0">
-                  <Activity className="w-96 h-96" />
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
-                  {/* Left Hero Content */}
-                  <div className="lg:col-span-7 space-y-6">
-                    <h2 className="text-3xl md:text-5xl font-serif italic font-black leading-[1.1] tracking-tight">
-                      Interactive Clinical Simulations, Medical Training, & Research
-                    </h2>
-                    <p className="text-sm md:text-base text-slate-200/90 leading-relaxed max-w-xl font-medium font-sans">
-                      Calibrate your clinical instincts with high-fidelity, peer-reviewed patient sandbox simulators. Seamlessly tailored for students, practitioners, faculty, and academic healthcare networks.
-                    </p>
+              {/* STYLISH MEDICAL HERO PAGE & INTERACTIVE CLINICAL HUB */}
+              <div className="relative space-y-8">
+                {/* Inline Animation styles for seamless premium interactions */}
+                <style>{`
+                  @keyframes ecgWave {
+                    0% { stroke-dashoffset: 1000; }
+                    100% { stroke-dashoffset: 0; }
+                  }
+                  .animate-ecg-pulse {
+                    stroke-dasharray: 1000;
+                  }
+                  @keyframes pulse-ring {
+                    0% { transform: scale(0.95); opacity: 0.5; }
+                    50% { transform: scale(1.1); opacity: 0.8; }
+                    100% { transform: scale(0.95); opacity: 0.5; }
+                  }
+                  .animate-pulse-ring {
+                    animation: pulse-ring 2s infinite ease-in-out;
+                  }
+                `}</style>
 
-                    {/* Dual CTAs */}
-                    <div className="flex flex-wrap gap-4 pt-2">
-                      <button
-                        onClick={() => setIsRegistering(true)}
-                        className="bg-amber-400 hover:bg-amber-500 hover:scale-[1.02] text-[#002B70] font-black text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all shadow-lg shadow-amber-400/10 flex items-center gap-2 cursor-pointer"
-                      >
-                        <span>Get Started / Create Account</span>
-                        <ArrowRight className="h-4.5 w-4.5" />
-                      </button>
-                      <button
-                        onClick={() => setShowDemo(true)}
-                        className="bg-white/10 hover:bg-white/20 text-white border border-white/25 hover:border-white/40 font-extrabold text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <span>Watch Simulation Demo</span>
-                      </button>
-                    </div>
-                  </div>
+                <div className="bg-gradient-to-br from-[#071630] via-[#0a234c] to-[#030d1e] text-white rounded-[2.5rem] p-6 md:p-12 shadow-2xl relative overflow-hidden border border-blue-950/80">
+                  {/* Decorative High-Tech Background Lines & Gradients */}
+                  <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-40 -mt-40 z-0 animate-pulse" />
+                  <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -ml-40 -mb-40 z-0" />
+                  
+                  {/* Outer Tech Grid Overlay */}
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none" />
 
-                  {/* Right Hero: DYNAMIC ROLE SELECTOR PANEL */}
-                  <div className="lg:col-span-5 bg-white/95 backdrop-blur-md text-slate-800 p-6 md:p-8 rounded-[1.8rem] border border-blue-100/60 shadow-2xl space-y-5">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#64748B] block">Select Your Medical Role:</label>
-                      <select
-                        value={userRole}
-                        onChange={(e) => setUserRole(e.target.value as UserRole)}
-                        className="w-full bg-[#F8FAFC] hover:bg-slate-100 border border-[#E2E8F0] text-xs py-3 px-4 rounded-xl text-slate-800 font-extrabold outline-none cursor-pointer focus:border-[#003B95] focus:ring-2 focus:ring-[#003B95]/10 transition-all"
-                      >
-                        {Object.values(UserRole).map(role => (
-                          <option key={role} value={role}>{role}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-stretch relative z-10">
+                    
+                    {/* LEFT COLUMN: HERO INFORMATION & METADATA ACCENTS (7 Columns) */}
+                    <div className="lg:col-span-7 flex flex-col justify-between space-y-6">
+                      <div className="space-y-4">
+                        {/* High-fidelity Brand Accent Badge */}
+                        <div className="inline-flex items-center gap-2 bg-[#003B95]/40 backdrop-blur-md text-blue-300 font-extrabold text-[10px] py-1.5 px-4 rounded-full border border-blue-500/30 uppercase tracking-widest">
+                          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse-ring" />
+                          <span>Advanced Sandbox System v4.8</span>
+                        </div>
 
-                    {/* Dynamic Adaptive Value Proposition content based on selected role */}
-                    <div className="bg-[#F8FAFC] border border-slate-200/50 p-4 rounded-2xl min-h-[140px] flex flex-col justify-between space-y-3">
-                      <div>
-                        <span className="bg-[#003B95]/10 text-[#003B95] text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md">
-                          Tailored Workspace benefits
-                        </span>
+                        <h2 className="text-3xl md:text-5xl font-serif italic font-black leading-[1.1] tracking-tight">
+                          Interactive Clinical Simulations, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-emerald-300">Medical Training</span> & Research
+                        </h2>
                         
+                        <p className="text-xs md:text-sm text-slate-300/90 leading-relaxed max-w-xl font-medium font-sans">
+                          Calibrate clinical instincts with peer-reviewed, high-fidelity patient sandbox simulators. Dynamically model hemodynamics, test board-level USMLE diagnostic MCQ modules, and generate synthetic demographies.
+                        </p>
+                      </div>
+
+                      {/* Primary Calls to Action */}
+                      <div className="flex flex-wrap gap-4 pt-2">
+                        <button
+                          onClick={() => setIsRegistering(true)}
+                          className="bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 hover:scale-[1.02] text-[#002B70] font-black text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all shadow-lg shadow-amber-400/20 flex items-center gap-2.5 cursor-pointer"
+                        >
+                          <span>Get Started / Create Account</span>
+                          <ArrowRight className="h-4.5 w-4.5" />
+                        </button>
+                        <button
+                          onClick={() => setShowDemo(true)}
+                          className="bg-white/5 hover:bg-white/15 text-white border border-white/10 hover:border-white/25 font-extrabold text-xs uppercase tracking-widest py-4 px-8 rounded-full transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                          <Activity className="h-4 w-4 text-blue-400" />
+                          <span>Watch Simulation Demo</span>
+                        </button>
+                      </div>
+
+                      {/* Beautiful Ticker Metadata Metrics */}
+                      <div className="pt-6 border-t border-blue-900/40 grid grid-cols-3 gap-4">
+                        {[
+                          { val: "50+", label: "Medical Specialties", accent: "text-blue-300" },
+                          { val: "12K+", label: "Verified Simulations", accent: "text-emerald-300" },
+                          { val: "99.4%", label: "USMLE Prep Accuracy", accent: "text-amber-300" }
+                        ].map((stat, i) => (
+                          <div key={i} className="space-y-0.5">
+                            <span className={`text-xl md:text-2xl font-serif italic font-black block ${stat.accent}`}>
+                              {stat.val}
+                            </span>
+                            <span className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold block leading-tight">
+                              {stat.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: INTERACTIVE CLINICAL WAVEFORM MONITOR & PEXELS COLLAGE (5 Columns) */}
+                    <div className="lg:col-span-5 flex flex-col justify-between gap-5">
+                      
+                      {/* INTERACTIVE ECG SIMULATOR WIDGET */}
+                      <div className="bg-[#040914] border border-blue-950 rounded-2xl p-4 shadow-xl space-y-3 font-mono text-xs text-emerald-400 relative overflow-hidden">
+                        {/* Grid lines background */}
+                        <div className="absolute inset-0 bg-[linear-gradient(rgba(16,185,129,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(16,185,129,0.03)_1px,transparent_1px)] bg-[size:12px_12px] pointer-events-none" />
+                        
+                        <div className="flex justify-between items-center relative z-10 border-b border-emerald-950/50 pb-2">
+                          <div>
+                            <div className="text-[8px] text-slate-400 uppercase tracking-widest font-black font-sans">Interactive Vitals Monitor</div>
+                            <div className="flex items-center gap-1 font-bold">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+                              <span className="text-emerald-400 text-[10px]">LEAD II • REAL-TIME FEED</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-black text-emerald-400 tracking-tighter leading-none flex items-baseline justify-end gap-0.5">
+                              <Activity className="h-4.5 w-4.5 text-emerald-400 animate-pulse self-center" />
+                              <span>{ecgHeartRate}</span>
+                              <span className="text-[8px] text-slate-500 font-bold uppercase font-sans">bpm</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Interactive dynamic SVG graph */}
+                        <div className="h-16 my-1 flex items-center justify-center relative">
+                          <svg className="w-full h-full text-emerald-400 opacity-90" viewBox="0 0 300 80" preserveAspectRatio="none">
+                            <path
+                              d="M 0 40 L 40 40 L 48 36 L 56 44 L 64 40 L 80 40 L 88 40 L 92 12 L 100 72 L 108 32 L 116 40 L 132 40 L 144 40 L 184 40 L 192 36 L 200 44 L 208 40 L 224 40 L 232 40 L 236 12 L 244 72 L 252 32 L 260 40 L 276 40 L 300 40"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              style={{
+                                strokeDasharray: "1000",
+                                animation: `ecgWave ${ecgCondition === "Tachycardia" ? "0.9s" : ecgCondition === "Bradycardia" ? "2.2s" : "1.4s"} linear infinite`
+                              }}
+                            />
+                          </svg>
+                          <span className="absolute left-3 top-1 text-[8px] bg-slate-950/80 border border-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded font-bold font-sans">
+                            SpO2: {ecgHeartRate > 120 ? "94%" : "99%"} • BP: {ecgCondition === "Bradycardia" ? "90/55" : ecgCondition === "Tachycardia" ? "145/95" : "120/80"} mmHg
+                          </span>
+                        </div>
+
+                        {/* Control buttons */}
+                        <div className="relative z-10 grid grid-cols-3 gap-1.5 pt-1">
+                          {[
+                            { label: "Bradycardia", key: "Bradycardia" },
+                            { label: "Normal Sinus", key: "Normal" },
+                            { label: "Tachycardia", key: "Tachycardia" }
+                          ].map(cond => (
+                            <button
+                              key={cond.key}
+                              onClick={() => setEcgCondition(cond.key as any)}
+                              className={`py-1.5 px-2 rounded-xl text-center border transition-all cursor-pointer ${
+                                ecgCondition === cond.key
+                                  ? "bg-emerald-500/10 border-emerald-500 text-emerald-300 font-bold"
+                                  : "bg-slate-900/60 border-slate-950 text-slate-400 hover:border-slate-800"
+                              }`}
+                            >
+                              <div className="text-[9px] font-bold tracking-tight">{cond.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* HIGH-QUALITY PEXELS IMAGERY CAROUSEL */}
+                      <div className="bg-[#040914] border border-blue-950 rounded-2xl p-4 shadow-xl space-y-3 relative overflow-hidden flex-1 flex flex-col justify-between">
+                        <div className="space-y-1">
+                          <span className="text-[8px] text-slate-400 uppercase tracking-widest font-black font-mono">Platform Live Capture</span>
+                          <h4 className="font-serif italic font-bold text-slate-100 text-xs">Simulated Environments</h4>
+                        </div>
+
+                        {/* Interactive Large Active Image view */}
+                        <div className="h-28 rounded-xl overflow-hidden relative group border border-blue-900/20">
+                          <img
+                            src={HERO_IMAGES[activeHeroImage].url}
+                            alt={HERO_IMAGES[activeHeroImage].title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex flex-col justify-end p-3 space-y-0.5">
+                            <span className="text-[9px] font-mono bg-blue-500 text-white font-extrabold px-1.5 py-0.5 rounded self-start uppercase tracking-wider scale-90 -ml-1">
+                              {HERO_IMAGES[activeHeroImage].tag}
+                            </span>
+                            <p className="text-[10px] text-slate-300 font-medium font-sans leading-tight line-clamp-2">
+                              {HERO_IMAGES[activeHeroImage].desc}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Image Switchers */}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {HERO_IMAGES.map((img, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setActiveHeroImage(idx)}
+                              className={`h-11 rounded-lg overflow-hidden border transition-all cursor-pointer relative ${
+                                activeHeroImage === idx
+                                  ? "border-blue-400 ring-2 ring-blue-500/20 scale-[1.03]"
+                                  : "border-slate-900 opacity-60 hover:opacity-100"
+                              }`}
+                            >
+                              <img
+                                src={img.url}
+                                alt={img.title}
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="absolute inset-0 bg-slate-950/40 hover:bg-transparent flex items-center justify-center">
+                                <span className="text-[7px] font-mono font-black text-white text-center px-0.5 truncate leading-tight uppercase">
+                                  {img.title}
+                                </span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* ADAPTIVE WORKSPACE BENEFITS & QUICK LOGIN PASS (BENTO BLOCK) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                  
+                  {/* Left Column: Adaptive Role value benefits */}
+                  <div className="lg:col-span-7 bg-white border border-[#E2E8F0] p-6 md:p-8 rounded-[2rem] shadow-sm flex flex-col justify-between space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <span className="text-[#003B95] text-[9px] font-black uppercase tracking-widest block font-mono">Tailored Workspace Analytics</span>
+                        <h3 className="font-serif italic font-bold text-[#0F172A] text-2xl tracking-tight">Select & Inspect Your Workspace Role:</h3>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {Object.values(UserRole).map(role => (
+                          <button
+                            key={role}
+                            onClick={() => setUserRole(role)}
+                            className={`py-2 px-4 rounded-xl border text-xs font-mono font-bold transition-all cursor-pointer ${
+                              userRole === role
+                                ? "bg-[#003B95] text-white border-[#003B95] shadow-md shadow-blue-900/10"
+                                : "bg-[#F8FAFC] text-slate-600 border-[#E2E8F0] hover:bg-slate-100"
+                            }`}
+                          >
+                            ⚕️ {role}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Display value prop of active role */}
+                      <div className="bg-[#F8FAFC] border border-[#E2E8F0]/70 p-4 rounded-2xl min-h-[100px] flex flex-col justify-center">
                         {userRole === UserRole.STUDENT && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Accelerate licensing board preparations</strong>. Access custom MCQ Q-banks with immediate diagnostic feedback, clinical OSCE interactive cases, and real-time faculty-assigned workloads.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Student Mode</strong>: Prepare for USMLE Licensure Exams. Practice in realistic simulated OSCE case workflows, explore 100+ diagnostic drugs, and track personal contribution maps.
                           </p>
                         )}
                         {userRole === UserRole.DOCTOR && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Elevate clinical competency</strong>. Simulate high-risk diagnostic scenarios in a risk-free sandbox, earn official Continuing Medical Education (CME) hours, and consult specialized board peers.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Doctor Mode</strong>: Calibrate complex diagnostic instincts. Simulate rare multi-system pathological presentations, claim verifyable Continuing Medical Education (CME) hours, and review drug dossiers.
                           </p>
                         )}
                         {userRole === UserRole.FACULTY && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Calibrate academic curriculums</strong>. Build customized clinical case templates, proctor live class simulations, track topic struggles, and issue cryptographically verifiable credentials.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Faculty Mode</strong>: Author clinical simulation templates. Proctor student cohorts live, review system diagnostic struggle ratios, and export cryptographically signed achievements.
                           </p>
                         )}
                         {userRole === UserRole.RESEARCHER && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Synthesize healthcare research</strong>. Generate anonymized synthetic cohorts data, simulate compound interaction profiles, and sync drafts with academic writing workspaces.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Researcher Mode</strong>: Export compliant simulated demographic datasets. Synthesize synthetic cohorts, examine compound drug profile vectors, and query verified medical dictionaries.
                           </p>
                         )}
                         {userRole === UserRole.PHARMA && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Accelerate pharmaceutical trials</strong>. Model clinical compound interactions with virtual demographics, analyze efficacy indexes, and sponsor certified specialist modules.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Pharmaceutical Expert</strong>: Deploy trial tracking profiles. Sponsor specialist modules, crosscheck molecular drug indexes, and model compound-receptor interaction efficacy.
                           </p>
                         )}
                         {userRole === UserRole.HOSPITAL && (
-                          <p className="text-xs text-slate-700 leading-relaxed font-medium mt-2.5 font-sans">
-                            <strong>Secure institutional safety standards</strong>. Review department competency matrixes, audit high-risk sectors, and verify medical credentials compliance.
+                          <p className="text-xs text-slate-600 leading-relaxed font-sans">
+                            <strong className="text-[#003B95]">Hospital Administrator</strong>: Audit department metrics. Monitor general clinician board preparations, analyze specialty usage charts, and manage official regulatory passports.
                           </p>
                         )}
                       </div>
+                    </div>
 
-                      <div className="flex flex-col gap-2 pt-2 border-t border-slate-200/50">
-                        <button
-                          onClick={() => {
-                            const matchingAccount = DEMO_ACCOUNTS.find(acc => acc.role === userRole);
-                            if (matchingAccount) {
-                              setRegisteredUser({
-                                name: matchingAccount.name,
-                                role: matchingAccount.role,
-                                email: matchingAccount.email,
-                                identifier: matchingAccount.identifier,
-                                preferredFont: matchingAccount.preferredFont
-                              });
-                              setFontFamily(matchingAccount.preferredFont as any);
-                              setIsRegistered(true);
-                            }
-                          }}
-                          className="bg-[#003B95] hover:bg-blue-950 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 px-4 rounded-xl shadow-xs hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer w-full"
-                        >
-                          <Key className="h-3.5 w-3.5 text-amber-300" />
-                          <span>Instant Log In as {userRole}</span>
-                        </button>
-                        
-                        <button
-                          onClick={() => setIsRegistering(true)}
-                          className="text-[9px] font-bold uppercase tracking-widest text-[#64748B] hover:text-[#003B95] transition-colors py-1 text-center cursor-pointer"
-                        >
-                          Or create custom credentials
-                        </button>
+                    <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-mono font-extrabold uppercase">Prefer customized credentials?</span>
+                        <p className="text-[11px] text-[#64748B] font-medium font-sans">Create a personal login password to save your progress permanently.</p>
+                      </div>
+                      <button
+                        onClick={() => setIsRegistering(true)}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-[10px] uppercase tracking-widest py-3 px-6 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        Create Custom Account
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Seamless Instant Academic login pass */}
+                  <div className="lg:col-span-5 bg-gradient-to-br from-[#003B95] to-[#011F51] text-white p-6 md:p-8 rounded-[2rem] shadow-xl flex flex-col justify-between space-y-6 border border-blue-950 relative overflow-hidden">
+                    {/* Tiny visual graphic in background */}
+                    <div className="absolute right-0 top-0 opacity-10 pointer-events-none transform translate-x-12 -translate-y-6 z-0">
+                      <Shield className="w-48 h-48" />
+                    </div>
+
+                    <div className="space-y-4 relative z-10">
+                      <div className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 font-extrabold text-[9px] py-1 px-3 rounded-full border border-amber-400/20 uppercase tracking-widest">
+                        <Key className="h-3 w-3 text-amber-300" />
+                        <span>One-Click Verification Pass</span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-serif italic font-bold text-slate-100 text-xl leading-tight">Instant Academic Passport Login</h4>
+                        <p className="text-xs text-slate-300/90 leading-relaxed font-medium font-sans">
+                          Instantly launch customized workflows pre-populated with verified patient cases, custom curriculums, and research profiles.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 relative z-10">
+                      <button
+                        onClick={() => {
+                          const matchingAccount = DEMO_ACCOUNTS.find(acc => acc.role === userRole);
+                          if (matchingAccount) {
+                            setRegisteredUser({
+                              name: matchingAccount.name,
+                              role: matchingAccount.role,
+                              email: matchingAccount.email,
+                              identifier: matchingAccount.identifier,
+                              preferredFont: matchingAccount.preferredFont
+                            });
+                            setFontFamily(matchingAccount.preferredFont as any);
+                            setIsRegistered(true);
+                          }
+                        }}
+                        className="w-full bg-amber-400 hover:bg-amber-500 hover:scale-[1.01] text-[#002B70] font-black text-xs uppercase tracking-widest py-4 px-6 rounded-2xl text-center transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-amber-400/10"
+                      >
+                        <Key className="h-4 w-4 text-[#002B70]" />
+                        <span>Log In Instantly as {userRole}</span>
+                      </button>
+                      
+                      <div className="text-center">
+                        <span className="text-[9px] font-mono text-slate-300 uppercase tracking-wider font-extrabold">
+                          Demo Profiles provided for all 6 user categories
+                        </span>
                       </div>
                     </div>
                   </div>
+
                 </div>
               </div>
 
