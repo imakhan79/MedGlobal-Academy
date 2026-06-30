@@ -30,6 +30,7 @@ import MedicalKnowledgeSystem from "./components/MedicalKnowledgeSystem";
 import AIPathFinder from "./components/AIPathFinder";
 import MedicalExamSimulationEngine from "./components/MedicalExamSimulationEngine";
 import GlobalDoctorMatchNetwork from "./components/GlobalDoctorMatchNetwork";
+import MedicalSkillMarketplace from "./components/MedicalSkillMarketplace";
 
 // Lucide Icons
 import {
@@ -344,7 +345,7 @@ export default function App() {
             <div className="max-w-7xl mx-auto px-4 md:px-6 overflow-x-auto flex gap-3 scrollbar-none py-2">
               {[
                 { id: "dashboard", label: "Learning Portals", icon: Layers },
-                { id: "university", label: "Medical University", icon: BookOpen },
+                { id: "university", label: "Skill Marketplace", icon: BookOpen },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
                 { id: "mese", label: "MESE Board Simulation", icon: Activity },
                 { id: "gdma", label: "GDMA Global Doctor Match", icon: Users },
@@ -1014,7 +1015,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -12 }}
                   transition={{ duration: 0.22 }}
                 >
-                  <MedicalKnowledgeSystem />
+                  <MedicalSkillMarketplace />
                 </motion.div>
               )}
 

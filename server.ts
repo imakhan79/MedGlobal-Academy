@@ -2577,6 +2577,355 @@ Would you like me to open a booking request for a 30-minute consultation with **
   }
 });
 
+// --- Medical Skill Marketplace (Udemy for Medical Licensing) Endpoints ---
+
+interface CourseReview {
+  reviewer: string;
+  stars: number;
+  date: string;
+  comment: string;
+}
+
+interface SyllabusSection {
+  title: string;
+  duration: string;
+  lectures: string[];
+}
+
+interface Course {
+  id: string;
+  title: string;
+  subtitle: string;
+  category: string;
+  instructorName: string;
+  instructorTitle: string;
+  country: string;
+  rating: number;
+  ratingCount: number;
+  studentsCount: number;
+  price: number;
+  currency: string;
+  thumbnail: string;
+  durationHours: number;
+  level: "Beginner" | "Intermediate" | "Advanced";
+  syllabus: SyllabusSection[];
+  reviews: CourseReview[];
+}
+
+let MARKETPLACE_COURSES: Course[] = [
+  {
+    id: "course-usmle-renal",
+    title: "USMLE Step 1 High-Yield Renal Physiology & Acid-Base",
+    subtitle: "Master glomerular filtration mechanics, renal clearance calculations, and metabolic electrolyte imbalances with high-yield clinical board vignettes.",
+    category: "USMLE",
+    instructorName: "Dr. Arthur Pendelton, MD",
+    instructorTitle: "Associate Professor of Renal Medicine, Harvard Medical School",
+    country: "United States",
+    rating: 4.9,
+    ratingCount: 142,
+    studentsCount: 1240,
+    price: 49,
+    currency: "USD",
+    thumbnail: "🧬",
+    durationHours: 12,
+    level: "Advanced",
+    syllabus: [
+      {
+        title: "Glomerular Filtration & Hemodynamics",
+        duration: "3 hours",
+        lectures: ["Auscultation of Renal Bruits & Constriction Mechanics", "Calculating GFR vs RPF from Clearance Profiles", "The Renin-Angiotensin-Aldosterone Axis deep-dive"]
+      },
+      {
+        title: "Tubular Transport Mechanisms",
+        duration: "4 hours",
+        lectures: ["Proximal Convoluted Tubule Load vs Transport Maximums", "Loop of Henle Countercurrent Multiplier", "Distal Tubule & Collecting Duct hormonal controls"]
+      },
+      {
+        title: "Acid-Base Disorders Strategy",
+        duration: "5 hours",
+        lectures: ["The Winter's Formula for Respiratory Compensation", "High Anion Gap Metabolic Acidosis Mnemonic (MUDPILES)", "Mixed Acid-Base Disturbance cases interactive run"]
+      }
+    ],
+    reviews: [
+      { reviewer: "Dr. Sarah J.", stars: 5, date: "2026-06-15", comment: "Winter's formula explanation was incredibly simple. I answered 3 questions correctly on my practice block immediately after this lecture!" },
+      { reviewer: "Karan M. (New Delhi)", stars: 5, date: "2026-06-12", comment: "Outstanding animations on loop diuretics and distal tubule calcium channels. Best board prep ever." }
+    ]
+  },
+  {
+    id: "course-plab-pharm",
+    title: "PLAB 1 / UKMLA Clinical Pharmacology & Emergency Triage",
+    subtitle: "A complete blueprint-guided syllabus mapping out critical emergency toxicology, British National Formulary (BNF) protocols, and NICE guidelines for UK residency.",
+    category: "PLAB/UKMLA",
+    instructorName: "Dr. Olivia Sterling, MRCP",
+    instructorTitle: "Emergency Medicine Registrar, St Mary's Hospital (London)",
+    country: "United Kingdom",
+    rating: 4.8,
+    ratingCount: 98,
+    studentsCount: 840,
+    price: 39,
+    currency: "GBP",
+    thumbnail: "💊",
+    durationHours: 8,
+    level: "Intermediate",
+    syllabus: [
+      {
+        title: "Cardiovascular Drug Prescribing Protocols",
+        duration: "2.5 hours",
+        lectures: ["NICE guidelines for Hypertension management steps", "Acute coronary syndrome medical loading checklist", "Antiarrhythmics classifications and safety monitors"]
+      },
+      {
+        title: "Toxicology & Emergency Antidotes",
+        duration: "3 hours",
+        lectures: ["Paracetamol Overdose & N-acetylcysteine Nomogram", "Tricyclic Antidepressant toxicity and bicarbonate buffers", "Opioid and Benzodiazepine toxicity management"]
+      },
+      {
+        title: "Systemic Prescribing Safety Assessment",
+        duration: "2.5 hours",
+        lectures: ["Renal dosage adjustments in elderly patients", "Key drug interactions with Cytochrome P450", "End-of-life care syringe driver calculations"]
+      }
+    ],
+    reviews: [
+      { reviewer: "Dr. Hassan A.", stars: 5, date: "2026-06-20", comment: "Essential for PLAB 1. The BNF guidelines can be so dry, but Dr. Olivia makes it clinically relevant and easy to retain." },
+      { reviewer: "Amina O.", stars: 4, date: "2026-06-18", comment: "Very precise. Highly recommended for both PLAB 1 and the Prescribing Safety Assessment (PSA)." }
+    ]
+  },
+  {
+    id: "course-osce-comms",
+    title: "Mastering OSCE Practical Stations & Clinical Communication",
+    subtitle: "Overcome exam anxiety by mastering patient histories, breaking bad news, obtaining informed consent, and resolving aggressive patient vignettes.",
+    category: "Clinical Skills",
+    instructorName: "Dr. Priya Nair, MD, FRCPC",
+    instructorTitle: "Director of Clinical Simulation, Toronto General Hospital",
+    country: "Canada",
+    rating: 4.7,
+    ratingCount: 75,
+    studentsCount: 650,
+    price: 29,
+    currency: "CAD",
+    thumbnail: "🩺",
+    durationHours: 6,
+    level: "Beginner",
+    syllabus: [
+      {
+        title: "The Structured OSCE History Taking",
+        duration: "2 hours",
+        lectures: ["The SOCRATES pain scoring checklist", "Systemic review and pediatric history nuances", "Structuring histories under strict 8-minute timers"]
+      },
+      {
+        title: "Complex Communication Protocols",
+        duration: "2 hours",
+        lectures: ["SPIKES protocol for breaking difficult medical news", "Handling the angry or non-compliant patient scenario", "Discussing DNACPR and power of attorney with families"]
+      },
+      {
+        title: "Physical Examination Checklist Validation",
+        duration: "2 hours",
+        lectures: ["High-yield cranial nerve exam sequencing", "Cardiovascular and respiratory exam OSCE shortcuts", "Surgical abdomen examination mock runs"]
+      }
+    ],
+    reviews: [
+      { reviewer: "David L.", stars: 5, date: "2026-06-10", comment: "I passed my OSCE with outstanding marks in communication! The SPIKES protocol simulation was exactly what was asked on my exam." }
+    ]
+  },
+  {
+    id: "course-fcps-path",
+    title: "Comprehensive Pathology Masterclass for FCPS & Licensing",
+    subtitle: "Deep-dive cellular adaptations, acute/chronic inflammation, neoplasia genetics, and high-yield systemic pathology vignettes for regional licensing.",
+    category: "MRCP/MRCS",
+    instructorName: "Dr. Fatima Al-Sayed, FCPS",
+    instructorTitle: "Pathology Consultant, Cairo University Hospitals",
+    country: "Egypt",
+    rating: 4.9,
+    ratingCount: 115,
+    studentsCount: 910,
+    price: 34,
+    currency: "USD",
+    thumbnail: "🔬",
+    durationHours: 15,
+    level: "Advanced",
+    syllabus: [
+      {
+        title: "General Pathology Basics",
+        duration: "5 hours",
+        lectures: ["Apoptosis vs Necrosis biochem paths", "Free radicals generation and antioxidant defenses", "Wound healing phases and collagen types mapping"]
+      },
+      {
+        title: "Neoplasia & Tumor Genetics",
+        duration: "5 hours",
+        lectures: ["Proto-oncogenes, tumor suppressors (p53, Rb)", "Chemical and radiation carcinogenesis cascades", "Paraneoplastic syndromes high-yield tables"]
+      },
+      {
+        title: "Hematopathology & Lymphomas",
+        duration: "5 hours",
+        lectures: ["Microcytic vs Macrocytic anemia differential", "Myelodysplastic syndromes and Leukemia types", "Hodgkin vs Non-Hodgkin Lymphoma biopsies review"]
+      }
+    ],
+    reviews: [
+      { reviewer: "Mariam Y.", stars: 5, date: "2026-06-25", comment: "The p53 pathway analysis was a masterstroke. Best hematopathology diagrams I have seen." }
+    ]
+  },
+  {
+    id: "course-mrcp-gastro",
+    title: "MRCP Part 1 Gastroenterology & Hepatology Board Review",
+    subtitle: "Master complex inflammatory bowel disease treatments, liver enzyme panels, and autoimmune hepatitis diagnostic pathways with real registrar cases.",
+    category: "MRCP/MRCS",
+    instructorName: "Dr. Amit Patel, MRCP",
+    instructorTitle: "Senior Gastroenterology Registrar, King's College Hospital",
+    country: "United Kingdom",
+    rating: 4.9,
+    ratingCount: 184,
+    studentsCount: 1540,
+    price: 54,
+    currency: "GBP",
+    thumbnail: "🧪",
+    durationHours: 10,
+    level: "Advanced",
+    syllabus: [
+      {
+        title: "Inflammatory Bowel Disease (IBD)",
+        duration: "3 hours",
+        lectures: ["Crohn's Disease vs Ulcerative Colitis micro differences", "Biological agents and step-up treatment options", "Complications: Toxic megacolon and fistulizing disease"]
+      },
+      {
+        title: "Chronic Liver Disease & Hepatology",
+        duration: "4 hours",
+        lectures: ["Ascites management and Spontaneous Bacterial Peritonitis (SBP)", "Wilson's Disease & Hemochromatosis iron load checks", "Viral Hepatitis serology interpretation masterclass"]
+      },
+      {
+        title: "Malabsorption & Pancreatic Diseases",
+        duration: "3 hours",
+        lectures: ["Celiac Disease tissue antibody titers", "Acute pancreatitis Ranson criteria scoring", "Chronic pancreatitis enzyme replacement therapies"]
+      }
+    ],
+    reviews: [
+      { reviewer: "Dr. Joshua T.", stars: 5, date: "2026-06-27", comment: "Dr. Amit is a brilliant educator. His case-based scenarios on SBP and viral serology are identical to MRCP questions." }
+    ]
+  },
+  {
+    id: "course-ecg-cardio",
+    title: "ECG Interpretation for Emergency & Acute Cardiology",
+    subtitle: "Go from confused to confident in reading axis deviation, bundle branch blocks, ischemia localization, and lethal arrhythmias under high pressure.",
+    category: "Emergency Medicine",
+    instructorName: "Dr. Kenji Tanaka, MD",
+    instructorTitle: "Cardiology Registrar, Melbourne Medical Center",
+    country: "Australia",
+    rating: 4.6,
+    ratingCount: 62,
+    studentsCount: 420,
+    price: 19,
+    currency: "AUD",
+    thumbnail: "❤️",
+    durationHours: 5,
+    level: "Intermediate",
+    syllabus: [
+      {
+        title: "The 12-Lead Systematic Approach",
+        duration: "1.5 hours",
+        lectures: ["Determining heart rate and QRS axis deviation instantly", "Understanding PR, QRS, and QTc intervals anomalies", "Rhythm analysis: block types and sinus criteria"]
+      },
+      {
+        title: "Ischemia & Infarction Patterns",
+        duration: "2 hours",
+        lectures: ["STEMI localization: Anterior, Lateral, Inferior, Posterior leads", "Reciprocal ST segment changes physiology", "NSTEMI and T-wave inversion diagnostics"]
+      },
+      {
+        title: "Arrhythmias & Conduction Blocks",
+        duration: "1.5 hours",
+        lectures: ["Wenckebach vs Mobitz Type II AV block safety checks", "Ventricular Tachycardia vs SVT with aberrancy", "Long QT syndrome and Torsades de Pointes triggers"]
+      }
+    ],
+    reviews: [
+      { reviewer: "Tariq K.", stars: 4, date: "2026-06-05", comment: "The lead placements and coronary artery territories mapping changed my emergency shifts forever. Highly practical." }
+    ]
+  }
+];
+
+// 1. Get all marketplace courses
+app.get("/api/marketplace/courses", (req, res) => {
+  res.json({ courses: MARKETPLACE_COURSES });
+});
+
+// 2. Post a new user-generated course
+app.post("/api/marketplace/courses", (req, res) => {
+  const { title, subtitle, category, instructorName, instructorTitle, country, price, currency, level, durationHours, syllabus } = req.body;
+  
+  if (!title || !instructorName || !category) {
+    return res.status(400).json({ error: "Title, Instructor Name, and Category are required." });
+  }
+
+  const newCourse: Course = {
+    id: `course-${Date.now()}`,
+    title,
+    subtitle: subtitle || "No subtitle provided. Comprehensive self-paced exam syllabus designed for international medical graduates.",
+    category,
+    instructorName,
+    instructorTitle: instructorTitle || "Independent Accredited Clinical Instructor",
+    country: country || "United States",
+    rating: 5.0,
+    ratingCount: 1,
+    studentsCount: 1,
+    price: Number(price) || 0,
+    currency: currency || "USD",
+    thumbnail: "🎓",
+    durationHours: Number(durationHours) || 6,
+    level: level || "Intermediate",
+    syllabus: syllabus || [
+      {
+        title: "Course Overview & Onboarding",
+        duration: "1 hour",
+        lectures: ["Introduction & Syllabus Walkthrough", "Licensing Exam Blueprint Mapping & High-Yield Strategy"]
+      },
+      {
+        title: "High-Yield Subject Review Core",
+        duration: "3 hours",
+        lectures: ["Foundational Pathology Vignettes Review", "Interactive Case Study and Diagnostic Reasoning Loops"]
+      },
+      {
+        title: "Simulated Exam Q-Bank Integration",
+        duration: "2 hours",
+        lectures: ["Board-Style Mock Block Solutions", "Final Course Summary & Performance Optimization Tips"]
+      }
+    ],
+    reviews: [
+      { reviewer: "System Validation", stars: 5, date: new Date().toISOString().split('T')[0], comment: "Course published successfully. Open to trainee registrations." }
+    ]
+  };
+
+  MARKETPLACE_COURSES.unshift(newCourse);
+  res.status(201).json({ message: "Course published successfully", course: newCourse });
+});
+
+// 3. Post a review for a course and recalculate ratings
+app.post("/api/marketplace/courses/:id/review", (req, res) => {
+  const { id } = req.params;
+  const { reviewer, stars, comment } = req.body;
+
+  if (!reviewer || !stars || stars < 1 || stars > 5) {
+    return res.status(400).json({ error: "Reviewer name and valid stars (1-5) are required." });
+  }
+
+  const course = MARKETPLACE_COURSES.find(c => c.id === id);
+  if (!course) {
+    return res.status(404).json({ error: "Course not found." });
+  }
+
+  const newReview: CourseReview = {
+    reviewer,
+    stars: Number(stars),
+    date: new Date().toISOString().split('T')[0],
+    comment: comment || "Reviewed by verified trainee course participant."
+  };
+
+  course.reviews.push(newReview);
+  
+  // Recalculate average rating
+  const totalStars = course.reviews.reduce((acc, curr) => acc + curr.stars, 0);
+  course.rating = Number((totalStars / course.reviews.length).toFixed(1));
+  course.ratingCount = course.reviews.length;
+  course.studentsCount += 1; // Simulate student enrollment growth with review
+
+  res.json({ message: "Review added successfully", course });
+});
+
 // --- Server & Vite Setup ---
 
 async function startServer() {
