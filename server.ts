@@ -296,6 +296,267 @@ Always scan the clinical vignette for specific combinations of risk factors, exa
   }
 });
 
+// 2.6. AI Doctor Path Finder Career Advisor Endpoint
+app.post("/api/pathfinder", async (req, res) => {
+  const { currentStatus, countryOfTraining, budget, primaryGoal, prepDurationMonths = 12 } = req.body;
+  
+  const client = getAIClient();
+
+  // 1. Setup fallback data dynamically in case Gemini is offline or not configured
+  const generateFallbackPathfinder = () => {
+    const isUSMLE = String(primaryGoal).toLowerCase().includes("usmle");
+    const isPLAB = String(primaryGoal).toLowerCase().includes("plab") || String(primaryGoal).toLowerCase().includes("ukmla");
+    const isMRCP = String(primaryGoal).toLowerCase().includes("mrcp") || String(primaryGoal).toLowerCase().includes("mrcs");
+    const isMCCQE = String(primaryGoal).toLowerCase().includes("mccqe");
+    const isAMC = String(primaryGoal).toLowerCase().includes("amc");
+
+    // Standard calculations
+    let prob = 70;
+    let rating: "High" | "Medium" | "Low" = "Medium";
+    
+    if (String(currentStatus).toLowerCase().includes("student")) {
+      prob = isUSMLE ? 75 : isPLAB ? 85 : 80;
+      rating = "High";
+    } else if (String(currentStatus).toLowerCase().includes("graduate")) {
+      prob = isUSMLE ? 65 : isPLAB ? 78 : 75;
+      rating = "Medium";
+    } else {
+      prob = 70;
+      rating = "Medium";
+    }
+
+    if (String(budget).toLowerCase() === "low") {
+      prob -= 10;
+    } else if (String(budget).toLowerCase() === "high") {
+      prob += 10;
+    }
+    prob = Math.max(25, Math.min(95, prob));
+
+    // Determine target exams sequence
+    let exams = [];
+    if (isUSMLE) {
+      exams = [
+        { name: "USMLE Step 1", typicalPrepMonths: 6, costEstimate: "$1,100 + local tax", keyTopics: ["Basic Sciences", "Pathology", "Pharmacology", "Biochemistry", "Microbiology"], passMark: "Pass/Fail (Score ≥ 196 equivalent)" },
+        { name: "USMLE Step 2 CK", typicalPrepMonths: 5, costEstimate: "$1,100 + local tax", keyTopics: ["Clinical Knowledge", "Internal Medicine", "Surgery", "Pediatrics", "OB/GYN", "Psychiatry"], passMark: "Numerical Score (Mean ~248)" },
+        { name: "OET (Occupational English Test)", typicalPrepMonths: 1, costEstimate: "$450", keyTopics: ["Medical English", "Clinical Speaking", "Reading", "Listening", "Writing"], passMark: "Grade B minimum in all sub-tests" }
+      ];
+    } else if (isPLAB) {
+      exams = [
+        { name: "OET / IELTS Exam", typicalPrepMonths: 1, costEstimate: "$450", keyTopics: ["Professional English Proficiency", "Patient Communication"], passMark: "OET Grade B or IELTS 7.5 overall" },
+        { name: "PLAB 1 / UKMLA AKT", typicalPrepMonths: 3, costEstimate: "$330", keyTopics: ["Clinical Knowledge", "Best Practice Guidelines", "NICE Guidelines", "Ethics"], passMark: "Usually ~115-125 out of 180" },
+        { name: "PLAB 2 / UKMLA CPSA", typicalPrepMonths: 2, costEstimate: "$1,200", keyTopics: ["Objective Structured Clinical Examination (OSCE)", "History Taking", "Examination", "Communication"], passMark: "Station-based score + communication criteria" }
+      ];
+    } else if (isMRCP) {
+      exams = [
+        { name: "MRCP Part 1", typicalPrepMonths: 4, costEstimate: "$850", keyTopics: ["Basic Medical Sciences", "Clinical Pharmacology", "Physiology", "Pathology", "Systemic Medicine"], passMark: "Scaled score ≥ 528 (Approx 60%)" },
+        { name: "MRCP Part 2 Written", typicalPrepMonths: 3, costEstimate: "$850", keyTopics: ["Clinical Diagnosis", "Investigation Interpretation", "Acute Therapeutics", "Prognostic Indicators"], passMark: "Scaled score ≥ 454" },
+        { name: "PACES (Clinical Examination)", typicalPrepMonths: 3, costEstimate: "$1,650", keyTopics: ["OSCE Clinical Stations", "Cardiovascular, Respiratory, Abdominal, Neurological systems", "Communication & Ethics"], passMark: "Pass all seven skills across five clinical stations" }
+      ];
+    } else if (isMCCQE) {
+      exams = [
+        { name: "MCCQE Part I", typicalPrepMonths: 6, costEstimate: "$1,450 CAD", keyTopics: ["Canadian Healthcare System", "Ethics", "Clinical Decision Making", "Psychiatry", "Preventative Health"], passMark: "Score of 226 or higher" },
+        { name: "NAC OSCE", typicalPrepMonths: 3, costEstimate: "$3,100 CAD", keyTopics: ["Clinical Skills OSCE", "Patient Management", "Diagnostic Skills", "Communication and Professionalism"], passMark: "Pass based on cumulative station scores" },
+        { name: "IELTS / OET Language Test", typicalPrepMonths: 1, costEstimate: "$350 CAD", keyTopics: ["English or French linguistic fluency", "Linguistic clinical accuracy"], passMark: "IELTS Academic 7.0 minimum or equivalent" }
+      ];
+    } else {
+      // General AMC
+      exams = [
+        { name: "AMC Part 1 (MCQ)", typicalPrepMonths: 6, costEstimate: "$2,900 AUD", keyTopics: ["General Medicine", "Surgery", "Pediatrics", "Psychiatry", "Obstetrics & Gynecology", "Population Health"], passMark: "Score of 250 or higher" },
+        { name: "AMC Part 2 (Clinical)", typicalPrepMonths: 4, costEstimate: "$4,100 AUD", keyTopics: ["Structured Clinical Stations", "History Taking", "Physical Examination", "Counseling & Patient Communication"], passMark: "Pass 10 out of 14 scored stations" },
+        { name: "Language Exam (IELTS/OET)", typicalPrepMonths: 1, costEstimate: "$450 AUD", keyTopics: ["English Proficiency"], passMark: "IELTS 7.0 in each band or OET B" }
+      ];
+    }
+
+    // Determine timeline phases
+    const phases = [
+      {
+        title: "Phase 1: Foundation & Early Academic Anchoring",
+        startMonth: 1,
+        endMonth: Math.round(prepDurationMonths * 0.35),
+        description: `Establish an ironclad study schedule, complete basic medical sciences reviews, and initiate credential evaluation via ECFMG/GMC portals.`,
+        keyActionItems: [
+          `Formally register with ECFMG / Epic Portals for credential verification.`,
+          `Complete primary comprehensive study material passes (e.g. First Aid or Board prep).`,
+          `Set up daily practice schedules of 20-30 MCQs under timed conditions.`
+        ]
+      },
+      {
+        title: "Phase 2: High-Yield Targeted Subject Training",
+        startMonth: Math.round(prepDurationMonths * 0.35) + 1,
+        endMonth: Math.round(prepDurationMonths * 0.70),
+        description: `Deep dive into custom diagnostic clinical scenarios, intense mock simulations, and clinical experience placements.`,
+        keyActionItems: [
+          `Register for the primary written exam date (e.g. Step 1 / PLAB 1).`,
+          `Complete 100% of high-yield Q-Banks (such as UWorld or Plabable) with review notebooks.`,
+          `Arrange local or international clinical observerships / research assistantships to secure letters of recommendation.`
+        ]
+      },
+      {
+        title: "Phase 3: Ultimate Consolidation & Match Application Prep",
+        startMonth: Math.round(prepDurationMonths * 0.70) + 1,
+        endMonth: Number(prepDurationMonths),
+        description: `Execute final high-fidelity practice exams, register with relevant medical councils, and prepare personal statement portfolios.`,
+        keyActionItems: [
+          `Take full-length standardized mock tests (e.g., NBME or AMC practice sets) to verify readiness.`,
+          `Perform actual written/clinical board exams.`,
+          `Prepare clinical portfolio, CV, and submit applications via ERAS/GMC/CaRMS portals.`
+        ]
+      }
+    ];
+
+    // Determine financial projections
+    let budgetFactor = String(budget).toLowerCase() === "low" ? 0.75 : String(budget).toLowerCase() === "high" ? 1.5 : 1.0;
+    const itemCosts = isUSMLE ? [
+      { category: "Examination Registration Fees", cost: Math.round(2600 * budgetFactor), description: "USMLE Step 1 & Step 2 CK standard exam fees", savingTip: "Book exams early to avoid date change penalties." },
+      { category: "Credential Evaluation", cost: 350, description: "ECFMG certification, notary fees, EPIC verification", savingTip: "Submit accurate documents on the first attempt to avoid dual submission costs." },
+      { category: "High-Yield Learning Materials", cost: Math.round(600 * budgetFactor), description: "UWorld QBank, Anki subscriptions, Pathoma/First Aid", savingTip: "Use free high-yield open source decks (AnKing) and purchase second-hand textbooks." },
+      { category: "Clinical Rotations & Travel", cost: Math.round(4000 * budgetFactor), description: "US Clinical Experience (USCE), flight tickets, rent", savingTip: "Leverage university-sponsored exchange programs or university hospital electives." },
+      { category: "Residency Match Fees (ERAS)", cost: Math.round(1800 * budgetFactor), description: "Applying to 100+ programs, NRMP registration fees", savingTip: "Filter programs carefully to apply to IMG-friendly centers, avoiding over-application." }
+    ] : [
+      { category: "Language Assessment (OET)", cost: 450, description: "Occupational English Test booking and exam fee", savingTip: "Practice with official free mock resources; do not buy expensive prep classes." },
+      { category: "Medical Council Fees & Written Exams", cost: Math.round(1100 * budgetFactor), description: "PLAB 1/AKT registration, council administration fees", savingTip: "Keep tracking exam seats dynamically as cancellations happen." },
+      { category: "OSCE/Clinical Practicum Exams", cost: Math.round(1800 * budgetFactor), description: "PLAB 2/CPSA exam fee, mock courses, and travel to testing sites", savingTip: "Partner with peer-to-peer study groups for clinical practice instead of multiple premium courses." },
+      { category: "Living & Licensing Setup Costs", cost: Math.round(2500 * budgetFactor), description: "GMC/Council registration, visa fees, NHS onboarding costs", savingTip: "Look for hospital sponsorships that reimburse GMC registration fees post-hire." }
+    ];
+
+    // Determine risks
+    const risks = isUSMLE ? [
+      { bottleneck: "US Clinical Experience & Visas", explanation: "Clinics/hospitals heavily prioritize applicants with hands-on US Clinical Experience. Getting a B1/B2 visa is highly challenging for certain regions.", mitigation: "Apply for university-sponsored hands-on electives while still a medical student; grads can utilize research fellow Visas." },
+      { bottleneck: "Pass/Fail & High Step 2 Scores", explanation: "Since Step 1 is Pass/Fail, program directors screen primarily using Step 2 CK scores. Anything below 240 dramatically reduces match likelihood.", mitigation: "Treat Step 1 like a numerical score exam to build an impeccable base, and dedicate 5+ months specifically to Step 2 CK." },
+      { bottleneck: "Financial Liquidity Constraints", explanation: "The entire USMLE pathway typically exceeds $10,000, making it extremely difficult for lower-budget applicants.", mitigation: "Work as an online medical tutor, request financial aid for electives, or secure research assistantships that provide small stipends." }
+    ] : [
+      { bottleneck: "Exam Seat Scarcity (PLAB / AMC)", explanation: "Exam centers have limited capacity worldwide. Booking a PLAB 1/2 slot can sometimes take up to 8-12 months of waiting.", mitigation: "Keep refreshing booking screens daily and join exam alert Telegram channels for instant cancellation notifications." },
+      { bottleneck: "Changing Regulatory Landscapes (UKMLA)", explanation: "The GMC is transitionary, replacing PLAB with the UKMLA. This shifts content focus and clinical simulation standard rules.", mitigation: "Align your review syllabus precisely with the updated UKMLA content map published officially on the GMC website." },
+      { bottleneck: "OSCE Failure Risk", explanation: "Hands-on clinical communication exams have high anxiety triggers and up to a 35% failure rate for foreign graduates.", mitigation: "Form high-intensity OSCE study partnerships, practice simulated timing with timers, and focus strictly on bedside manner and empathy parameters." }
+    ];
+
+    // Determine resources
+    const resources = isUSMLE ? [
+      { name: "UWorld USMLE Q-Bank", type: "Paid" as const, cost: "$439 - $619", urlDescription: "Gold standard question bank for written boards", whyHighYield: "Provides high-fidelity clinical vignettes and masterclass rationales." },
+      { name: "First Aid for the USMLE", type: "Paid" as const, cost: "$55", urlDescription: "Syllabus Bible containing high-yield bulleted notes", whyHighYield: "Essential review manual that contains high-yield associations, mnemonics, and diagrams." },
+      { name: "AnKing Anki Deck", type: "Free" as const, cost: "$0", urlDescription: "Open-source collaborative flashcard spaced repetition deck", whyHighYield: "Best tool for long-term clinical active recall and memory retention." }
+    ] : [
+      { name: "Plabable for PLAB 1", type: "Paid" as const, cost: "$40", urlDescription: "NICE guidelines high-yield mock exam question bank", whyHighYield: "Highly specific, matching PLAB 1 question styles with active community explanations." },
+      { name: "Geeky Medics OSCE guides", type: "Free" as const, cost: "$0", urlDescription: "Clinical exam videos, checklists, and OSCE guides", whyHighYield: "Premium YouTube and web guides outlining exact communication and procedural metrics." },
+      { name: "Lamy PLAB 2 Guides", type: "Free" as const, cost: "$0", urlDescription: "High-yield PLAB 2 scripts, case studies, and checklists", whyHighYield: "Excellent peer-to-peer checklists for bedside communications." }
+    ];
+
+    return {
+      feasibilityCheck: {
+        rating,
+        assessment: `A robust and standard trajectory based on your background as a ${currentStatus} trained in ${countryOfTraining}. To successfully navigate the ${primaryGoal} track, meticulous coordination between academic examinations and clinical portfolios is mandatory.`
+      },
+      probabilityScore: prob,
+      probabilityReasoning: `Your probability score of ${prob}% is estimated based on your timeline preference of ${prepDurationMonths} months. To push this past 90%, prioritize hands-on clinical experience early and maintain a 90%+ completion rate on high-yield exam question banks.`,
+      timelinePlanner: {
+        durationMonths: Number(prepDurationMonths),
+        phases
+      },
+      examSequence: exams,
+      financialBreakdown: itemCosts,
+      riskFactors: risks,
+      recommendedResources: resources
+    };
+  };
+
+  // 2. Try to fetch dynamic personalization from Gemini API if key is present
+  if (!client) {
+    return res.json(generateFallbackPathfinder());
+  }
+
+  try {
+    const prompt = `You are an expert Medical Career Advisor specialized in international medical licensing and postgraduate training pathways.
+Please analyze this user profile and output a hyper-personalized medical career advisor roadmap in JSON format:
+
+User Profile:
+- Current Status: ${currentStatus || "MBBS Graduate"}
+- Country of Training: ${countryOfTraining || "India"}
+- Selected Pathway Budget Level: ${budget || "Medium"}
+- Primary Medical Licensing Goal: ${primaryGoal || "USMLE (Residency in USA)"}
+- Prep Timeline Selected: ${prepDurationMonths} months
+
+Required output schema (JSON):
+{
+  "feasibilityCheck": {
+    "rating": "High" | "Medium" | "Low",
+    "assessment": "Detailed 2-3 sentence realistic feasibility assessment of this goal based on current background."
+  },
+  "probabilityScore": 75, // Numerical percentage score out of 100 representing probability of success
+  "probabilityReasoning": "A short sentence explaining what can increase or decrease this probability score.",
+  "timelinePlanner": {
+    "durationMonths": ${prepDurationMonths},
+    "phases": [
+      {
+        "title": "Phase 1: Title",
+        "startMonth": 1,
+        "endMonth": 4,
+        "description": "Details about phase 1",
+        "keyActionItems": ["Action 1", "Action 2"]
+      }
+    ] // Array of 3 sequential timeline phases covering the exact prepDurationMonths
+  },
+  "examSequence": [
+    {
+      "name": "Exam Name",
+      "typicalPrepMonths": 6,
+      "costEstimate": "$1,100",
+      "keyTopics": ["Topic 1", "Topic 2"],
+      "passMark": "Details about pass mark"
+    }
+  ],
+  "financialBreakdown": [
+    {
+      "category": "Exam Registration Fees",
+      "cost": 2600,
+      "description": "Standard exam fees",
+      "savingTip": "Saving advice here"
+    }
+  ],
+  "riskFactors": [
+    {
+      "bottleneck": "Visa Issues / Seat scarcity",
+      "explanation": "Why this happens",
+      "mitigation": "Actionable way to bypass this bottleneck"
+    }
+  ],
+  "recommendedResources": [
+    {
+      "name": "Resource Name",
+      "type": "Free" | "Paid",
+      "cost": "$40",
+      "urlDescription": "Description of what it is",
+      "whyHighYield": "Educational reason why it is high-yield"
+    }
+  ]
+}
+
+IMPORTANT RULES:
+1. Always base the financial calculations on realistic, current rates for ${primaryGoal} pathways. Adjust costs appropriately based on their ${budget} budget tier.
+2. The month-by-month phase duration MUST sum up or fit precisely within the user's chosen timeline of ${prepDurationMonths} months.
+3. Be highly encouraging but realistically accurate. Focus on licensing board criteria.
+4. Output ONLY valid, clean JSON with no extra conversational text or Markdown enclosures like \`\`\`json.`;
+
+    const response = await generateContentWithRetry(client, {
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    try {
+      const parsed = JSON.parse(response.text || "{}");
+      res.json(parsed);
+    } catch (parseError) {
+      console.error("JSON parsing error on generated roadmap:", parseError);
+      res.json(generateFallbackPathfinder());
+    }
+  } catch (error: any) {
+    console.error("Gemini API error in generate-pathfinder, falling back to local simulation:", error);
+    res.json(generateFallbackPathfinder());
+  }
+});
+
 // 3. Clinical Case Virtual Patient Endpoint
 app.post("/api/clinical-case", async (req, res) => {
   const { action, currentHistory, userInput, patientInfo } = req.body;

@@ -27,6 +27,7 @@ import RegistrationFlow from "./components/RegistrationFlow";
 import RoleDashboards from "./components/RoleDashboards";
 import SupabaseHub from "./components/SupabaseHub";
 import MedicalKnowledgeSystem from "./components/MedicalKnowledgeSystem";
+import AIPathFinder from "./components/AIPathFinder";
 
 // Lucide Icons
 import {
@@ -58,6 +59,7 @@ import {
   AlertCircle,
   Terminal,
   ChevronDown,
+  Compass,
   ChevronUp
 } from "lucide-react";
 
@@ -110,7 +112,7 @@ const getCategoryBadgeClasses = (category: string) => {
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase" | "university"
+    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase" | "university" | "pathfinder"
   >("dashboard");
 
   // User Profile configuration
@@ -343,6 +345,7 @@ export default function App() {
                 { id: "university", label: "Medical University", icon: BookOpen },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
                 { id: "ai", label: "Clinical Assistants", icon: Activity },
+                { id: "pathfinder", label: "AI Path Finder", icon: Compass },
                 { id: "research", label: "Research Academy", icon: FileText },
                 { id: "drugs", label: "Pharma Center", icon: Heart },
                 { id: "credentials", label: "Credentials & Plans", icon: Award },
@@ -1032,6 +1035,18 @@ export default function App() {
                   transition={{ duration: 0.22 }}
                 >
                   <AIDialogs />
+                </motion.div>
+              )}
+
+              {activeTab === "pathfinder" && (
+                <motion.div
+                  key="pathfinder"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <AIPathFinder />
                 </motion.div>
               )}
 
