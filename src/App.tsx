@@ -28,6 +28,8 @@ import RoleDashboards from "./components/RoleDashboards";
 import SupabaseHub from "./components/SupabaseHub";
 import MedicalKnowledgeSystem from "./components/MedicalKnowledgeSystem";
 import AIPathFinder from "./components/AIPathFinder";
+import MedicalExamSimulationEngine from "./components/MedicalExamSimulationEngine";
+import GlobalDoctorMatchNetwork from "./components/GlobalDoctorMatchNetwork";
 
 // Lucide Icons
 import {
@@ -112,7 +114,7 @@ const getCategoryBadgeClasses = (category: string) => {
 export default function App() {
   // Navigation Tabs state
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase" | "university" | "pathfinder"
+    "dashboard" | "exams" | "ai" | "research" | "drugs" | "dictionary" | "credentials" | "admin" | "supabase" | "university" | "pathfinder" | "mese" | "gdma"
   >("dashboard");
 
   // User Profile configuration
@@ -344,6 +346,8 @@ export default function App() {
                 { id: "dashboard", label: "Learning Portals", icon: Layers },
                 { id: "university", label: "Medical University", icon: BookOpen },
                 { id: "exams", label: "Q-Bank & OSCE Stations", icon: HelpCircle },
+                { id: "mese", label: "MESE Board Simulation", icon: Activity },
+                { id: "gdma", label: "GDMA Global Doctor Match", icon: Users },
                 { id: "ai", label: "Clinical Assistants", icon: Activity },
                 { id: "pathfinder", label: "AI Path Finder", icon: Compass },
                 { id: "research", label: "Research Academy", icon: FileText },
@@ -1047,6 +1051,30 @@ export default function App() {
                   transition={{ duration: 0.22 }}
                 >
                   <AIPathFinder />
+                </motion.div>
+              )}
+
+              {activeTab === "mese" && (
+                <motion.div
+                  key="mese"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <MedicalExamSimulationEngine />
+                </motion.div>
+              )}
+
+              {activeTab === "gdma" && (
+                <motion.div
+                  key="gdma"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -12 }}
+                  transition={{ duration: 0.22 }}
+                >
+                  <GlobalDoctorMatchNetwork />
                 </motion.div>
               )}
 

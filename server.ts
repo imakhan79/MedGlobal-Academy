@@ -46,7 +46,7 @@ async function generateContentWithRetry(
 ): Promise<any> {
   const primaryModel = params.model || "gemini-3.5-flash";
   const backupModel = "gemini-3.1-flash-lite";
-  const maxRetries = 2;
+  const maxRetries = 3;
 
   async function tryModel(modelName: string): Promise<any> {
     let lastError: any = null;
@@ -65,10 +65,33 @@ async function generateContentWithRetry(
         return response;
       } catch (error: any) {
         lastError = error;
-        const statusCode = error.status || error.statusCode || (error.error && error.error.code);
-        const isTransient = statusCode === 429 || statusCode === 503 || statusCode === 500 || !statusCode;
         
-        console.error(`Gemini call failed for ${modelName} (attempt ${attempt}): ${error.message || error}`);
+        // Comprehensive extraction of error status / code
+        const statusCode = error.status || error.statusCode || (error.error && error.error.code);
+        const errStr = JSON.stringify(error).toLowerCase();
+        const errMsg = (error.message || "").toLowerCase();
+        
+        // Define transient indicators (UNAVAILABLE, RESOURCE_EXHAUSTED, 503, 429, 500, etc.)
+        const isTransient = 
+          statusCode === 429 || 
+          statusCode === 503 || 
+          statusCode === 500 ||
+          String(statusCode) === "429" ||
+          String(statusCode) === "503" ||
+          String(statusCode) === "500" ||
+          String(statusCode).toUpperCase() === "UNAVAILABLE" ||
+          String(statusCode).toUpperCase() === "RESOURCE_EXHAUSTED" ||
+          errStr.includes("503") || 
+          errStr.includes("429") || 
+          errStr.includes("unavailable") || 
+          errStr.includes("resource_exhausted") ||
+          errMsg.includes("503") || 
+          errMsg.includes("429") || 
+          errMsg.includes("unavailable") || 
+          errMsg.includes("resource_exhausted") ||
+          !statusCode;
+        
+        console.error(`Gemini call failed for ${modelName} (attempt ${attempt}): status=${statusCode}, transient=${isTransient}, message=${error.message || error}`);
         
         if (!isTransient) {
           throw error;
@@ -293,6 +316,357 @@ ${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${forma
 Always scan the clinical vignette for specific combinations of risk factors, exam findings, and timeline indicators to confidently rule out high-probability lookalikes on exam day!`;
     
     res.json({ response: fallbackResponse });
+  }
+});
+
+// 2.5. MCQ Explain with AI Endpoint
+app.post("/api/explain-mcq", async (req, res) => {
+  const { question, options, selectedAnswer, correctAnswer, rationale } = req.body;
+  const client = getAIClient();
+
+  if (!client) {
+    const isCorrect = selectedAnswer === correctAnswer;
+    const formattedSelected = String.fromCharCode(65 + Number(selectedAnswer));
+    const formattedCorrect = String.fromCharCode(65 + Number(correctAnswer));
+
+    const fallbackResponse = `### 💻 offline Mode: Simulated Personalized AI Breakdown
+
+${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${formattedCorrect}** (${options[correctAnswer]}) as the right choice.` : `⚠️ **Clinical Distinction Check:** You selected **Option ${formattedSelected}** (${options[selectedAnswer] || "None"}), but the correct answer is **Option ${formattedCorrect}** (${options[correctAnswer]}).`}
+
+#### Pathophysiological Deep Dive
+* **Why the correct option is right**: The patient's clinical presentation directly aligns with the pathophysiological process. The clinical rationale is: *"${rationale}"*.
+* **Why the other options are distractors**: Distractors represent closely related clinical mimics, but they lack specific pathognomonic details present in this scenario.
+
+#### High-Yield Board Takeaway
+Always scan the clinical vignette for specific combinations of risk factors, exam findings, and timeline indicators to confidently rule out high-probability lookalikes on exam day!`;
+    
+    return res.json({ response: fallbackResponse });
+  }
+
+  try {
+    const prompt = `You are an elite Medical Board Exam Instructor.
+A student has just answered a multiple-choice clinical question.
+Question: "${question}"
+Options: ${options.map((o: string, idx: number) => `${String.fromCharCode(65 + idx)}) ${o}`).join(", ")}
+The student selected: ${String.fromCharCode(65 + Number(selectedAnswer))}
+The correct answer is: ${String.fromCharCode(65 + Number(correctAnswer))}
+Pre-set rationale: "${rationale}"
+
+Provide a detailed, structured clinical breakdown explaining:
+1. Why the correct option is pathophysiologically or clinically superior.
+2. Why each of the other options (distractors) are incorrect in this context, detailing the specific key clinical details that distinguish them from the correct answer.
+3. A "High-Yield Board Takeaway" summary of 1-2 sentences.
+
+Output in elegant Markdown. Keep your tone highly professional, objective, academic, and supportive.`;
+
+    const response = await generateContentWithRetry(client, {
+      model: "gemini-3.5-flash",
+      contents: prompt,
+    });
+
+    res.json({ response: response.text });
+  } catch (error) {
+    console.error("Gemini API error in explain-mcq, falling back to local pre-set rationale:", error);
+    res.json({ response: `### 💻 offline Mode: Pre-Set Rationale Breakdown\n\n${rationale}` });
+  }
+});
+
+// 2.5.5. Medical Exam Simulation Engine (MESE) Endpoint
+app.post("/api/mese", async (req, res) => {
+  const { examType, focusArea, sessionHistory = [], currentDifficulty = "Clinical Reasoning", currentSpecialty = "Cardiology" } = req.body;
+  const client = getAIClient();
+
+  // Preseeded High-Yield Simulation Questions Pool for extreme fidelity offline/fallback mode
+  const MESE_QUESTION_POOL = [
+    {
+      examType: "USMLE Step 1",
+      specialty: "Cardiology",
+      difficulty: "Recall",
+      question: "A 54-year-old male with a history of hypertension presents for a routine checkup. On cardiac auscultation, a low-pitched, rumbling diastolic murmur is heard at the apex, best heard with the bell in the left lateral decubitus position. It is preceded by an opening snap. Which of the following is the most likely underlying etiology of this patient's valvular condition?",
+      options: [
+        "Age-related calcific degeneration",
+        "Chronic rheumatic heart disease",
+        "Infective endocarditis",
+        "Myxomatous degeneration",
+        "Congenital bicuspid valve"
+      ],
+      correctAnswerIndex: 1,
+      rationale: "Chronic rheumatic heart disease is the most common cause of mitral stenosis worldwide, which typically presents with a low-pitched diastolic rumble preceded by an opening snap. Age-related calcific degeneration primarily causes aortic stenosis. Myxomatous degeneration causes mitral valve prolapse (late systolic click and murmur)."
+    },
+    {
+      examType: "USMLE Step 1",
+      specialty: "Cardiology",
+      difficulty: "Clinical Reasoning",
+      question: "A 45-year-old female presents with progressive shortness of breath and orthopnea. Echocardiography demonstrates a thickened mitral valve with restricted leaflets, an opening snap, and a diastolic pressure gradient across the valve. Her past medical history is notable for a febrile illness during childhood characterized by painful joints and a transient rash. Which of the following hemodynamic changes is most likely present in this patient's left atrium and pulmonary vasculature?",
+      options: [
+        "Decreased left atrial pressure, decreased pulmonary artery diastolic pressure",
+        "Increased left atrial pressure, increased pulmonary artery diastolic pressure",
+        "Increased left atrial pressure, decreased pulmonary artery diastolic pressure",
+        "Decreased left atrial pressure, increased pulmonary artery diastolic pressure",
+        "Normal left atrial pressure, normal pulmonary capillary wedge pressure"
+      ],
+      correctAnswerIndex: 1,
+      rationale: "Mitral stenosis increases resistance to flow from the left atrium into the left ventricle, causing elevated left atrial pressure. This pressure is transmitted backwards into the pulmonary veins, capillaries, and arteries, resulting in pulmonary hypertension and elevated pulmonary artery diastolic and capillary wedge pressures."
+    },
+    {
+      examType: "USMLE Step 1",
+      specialty: "Cardiology",
+      difficulty: "Board-Level",
+      question: "A 32-year-old immigrant from Southeast Asia presents with exertional dyspnea, dry cough, and occasional blood-tinged sputum. On physical exam, she has a low-pitched diastolic rumble best heard at the apex and a loud S1. While waiting in the clinic, she suddenly develops acute-onset right-sided weakness and a facial droop. Electrocardiogram reveals an absent P-wave pattern with irregular R-R intervals. Which of the following mechanisms best explains the cerebral event in this patient?",
+      options: [
+        "Paradoxical embolism via a patent foramen ovale",
+        "Left atrial appendage thrombus formation secondary to stasis",
+        "Rupture of a Charcot-Bouchard microaneurysm",
+        "Septic emboli from infective endocarditis of the aortic valve",
+        "Atherosclerotic plaque rupture in the internal carotid artery"
+      ],
+      correctAnswerIndex: 1,
+      rationale: "The patient has mitral stenosis (diastolic rumble, loud S1, blood-tinged sputum due to pulmonary congestion/rupture of bronchial veins) complicated by new-onset atrial fibrillation (absent P-waves, irregular R-R intervals). Atrial fibrillation leads to blood stasis, especially in the left atrial appendage, predisposing to thrombus formation and systemic thromboembolism (e.g., ischemic stroke)."
+    },
+    {
+      examType: "USMLE Step 1",
+      specialty: "Pulmonology",
+      difficulty: "Recall",
+      question: "Which of the following cellular changes is most characteristic of chronic exposure to cigarette smoke in the bronchial epithelium of a patient with chronic bronchitis?",
+      options: [
+        "Squamous metaplasia",
+        "Glandular atrophy",
+        "Atypical hyperplasia",
+        "Simple hypertrophy",
+        "Coagulative necrosis"
+      ],
+      correctAnswerIndex: 0,
+      rationale: "Chronic irritation of the respiratory epithelium by cigarette smoke triggers a protective adaptation where the normal pseudostratified ciliated columnar epithelium transitions into a stratified squamous epithelium. This is known as squamous metaplasia."
+    },
+    {
+      examType: "USMLE Step 2",
+      specialty: "Cardiology",
+      difficulty: "Clinical Reasoning",
+      question: "A 68-year-old man presents with severe, tearing chest pain radiating to his back. His blood pressure is 185/110 mmHg in the right arm and 150/90 mmHg in the left arm. A chest X-ray shows a widened mediastinum. Which of the following is the most appropriate initial diagnostic or therapeutic step in the management of this patient?",
+      options: [
+        "Immediate administration of thrombolytics",
+        "Intravenous beta-blockade (e.g., esmolol) to control heart rate and blood pressure",
+        "Emergent coronary angiography",
+        "Oral aspirin and sublingual nitroglycerin",
+        "High-dose intravenous heparin infusion"
+      ],
+      correctAnswerIndex: 1,
+      rationale: "This clinical picture is diagnostic of an acute aortic dissection (tearing chest pain radiating to back, asymmetric arm blood pressures, widened mediastinum). The primary goal is to reduce shear stress on the aorta by lowering heart rate (target < 60/min) and systolic blood pressure (target 100-120 mmHg) using an IV beta-blocker such as esmolol or labetalol before definitive imaging (CT angiography)."
+    },
+    {
+      examType: "PLAB 1/UKMLA",
+      specialty: "Gastroenterology",
+      difficulty: "Clinical Reasoning",
+      question: "A 42-year-old female presents with a 6-month history of fatigue, pruritus, and dry eyes. Laboratory studies show elevated alkaline phosphatase (ALP) and positive anti-mitochondrial antibodies (AMA). Which of the following is the most likely diagnosis for this patient?",
+      options: [
+        "Primary biliary cholangitis (PBC)",
+        "Primary sclerosing cholangitis (PSC)",
+        "Autoimmune hepatitis",
+        "Choledocholithiasis",
+        "Alpha-1 antitrypsin deficiency"
+      ],
+      correctAnswerIndex: 0,
+      rationale: "Primary biliary cholangitis (PBC) typically presents in middle-aged women with fatigue, pruritus, dry eyes/mouth (Sjogren's symptoms), and is characterized by a cholestatic liver pattern (elevated ALP) and the presence of anti-mitochondrial antibodies (AMA)."
+    }
+  ];
+
+  // Logic to determine difficulty transitions (ADAPTIVE CHALLENGE)
+  let nextDifficulty = currentDifficulty;
+  let nextSpecialty = currentSpecialty;
+  let remediationSpecialty = null;
+  let isRemediationActive = false;
+
+  // Let's analyze specialty hit rates to see if we need to trigger a Remediation Phase (score < 60% on minimum 2 questions)
+  const specialtyStats: Record<string, { correct: number; total: number }> = {};
+  sessionHistory.forEach((h: any) => {
+    if (!specialtyStats[h.specialty]) {
+      specialtyStats[h.specialty] = { correct: 0, total: 0 };
+    }
+    specialtyStats[h.specialty].total += 1;
+    if (h.isCorrect) {
+      specialtyStats[h.specialty].correct += 1;
+    }
+  });
+
+  // Find if any specialty has dropped below 60% with at least 2 questions answered
+  for (const [spec, stat] of Object.entries(specialtyStats)) {
+    const rate = stat.correct / stat.total;
+    if (stat.total >= 2 && rate < 0.60) {
+      remediationSpecialty = spec;
+      isRemediationActive = true;
+      break;
+    }
+  }
+
+  // Handle adaptive difficulty step based on previous question performance
+  if (sessionHistory.length > 0) {
+    const lastResult = sessionHistory[sessionHistory.length - 1];
+    if (lastResult.isCorrect) {
+      // Increase difficulty
+      if (currentDifficulty === "Recall") nextDifficulty = "Clinical Reasoning";
+      else if (currentDifficulty === "Clinical Reasoning") nextDifficulty = "Board-Level";
+    } else {
+      // Decrease difficulty or pivot to foundational
+      if (currentDifficulty === "Board-Level") nextDifficulty = "Clinical Reasoning";
+      else if (currentDifficulty === "Clinical Reasoning") nextDifficulty = "Recall";
+    }
+  }
+
+  // If in remediation phase, override specialty and force standard scaffolding (starting at recall)
+  if (isRemediationActive && remediationSpecialty) {
+    nextSpecialty = remediationSpecialty;
+    // Scaffolding: if they have struggled, keep it at "Recall" or "Clinical Reasoning" until they get it right
+    const remediationHistory = sessionHistory.filter((h: any) => h.specialty === remediationSpecialty);
+    const lastRemediation = remediationHistory[remediationHistory.length - 1];
+    if (lastRemediation && !lastRemediation.isCorrect) {
+      nextDifficulty = "Recall";
+    }
+  } else {
+    nextSpecialty = focusArea && focusArea !== "All/General" ? focusArea : "Cardiology";
+  }
+
+  // Global calculations for benchmarking
+  const totalQuestions = sessionHistory.length;
+  const correctAnswers = sessionHistory.filter((h: any) => h.isCorrect).length;
+  const rawScorePercent = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 100;
+
+  // Competitive Benchmarking formula matching high-stakes standard distributions
+  // Percentile: starts at 50, scales up with correct answers, penalizes wrong answers, adjusted for difficulty weight
+  let difficultyBonus = 0;
+  sessionHistory.forEach((h: any) => {
+    if (h.difficulty === "Board-Level") difficultyBonus += h.isCorrect ? 3 : -1;
+    else if (h.difficulty === "Clinical Reasoning") difficultyBonus += h.isCorrect ? 1.5 : -0.5;
+  });
+
+  let simulatedPercentile = 50 + (rawScorePercent - 50) * 0.4 + difficultyBonus;
+  simulatedPercentile = Math.max(12, Math.min(99, Math.round(simulatedPercentile)));
+
+  // Generate weak areas diagnostics list
+  const weakAreas: string[] = [];
+  Object.entries(specialtyStats).forEach(([spec, stat]) => {
+    const rate = stat.correct / stat.total;
+    if (rate < 0.65) {
+      weakAreas.push(`${spec} (${Math.round(rate * 100)}% accuracy - Focus on core pathophysiology)`);
+    }
+  });
+  if (weakAreas.length === 0 && sessionHistory.length > 2) {
+    weakAreas.push("None identified yet. Excellent consistency!");
+  } else if (weakAreas.length === 0) {
+    weakAreas.push("Awaiting more question attempts to generate complete diagnostic summary.");
+  }
+
+  // 1. Fallback / Simulation function
+  const getSimulatedQuestion = () => {
+    // Attempt to match preseeded questions
+    const matched = MESE_QUESTION_POOL.find(
+      q => q.examType === examType && q.specialty === nextSpecialty && q.difficulty === nextDifficulty
+    ) || MESE_QUESTION_POOL.find(
+      q => q.specialty === nextSpecialty
+    ) || MESE_QUESTION_POOL[0];
+
+    return {
+      id: "mese-fallback-" + Date.now(),
+      difficulty: nextDifficulty,
+      specialty: nextSpecialty,
+      question: matched.question,
+      options: matched.options,
+      correctAnswerIndex: matched.correctAnswerIndex,
+      rationale: matched.rationale
+    };
+  };
+
+  // Try to use Gemini to generate an advanced, hyper-accurate, adaptive medical board MCQ
+  if (!client) {
+    return res.json({
+      question: getSimulatedQuestion(),
+      sessionStats: {
+        scorePercent: rawScorePercent,
+        percentile: simulatedPercentile,
+        weakAreas,
+        remediationSpecialty,
+        isRemediationActive
+      }
+    });
+  }
+
+  try {
+    const prompt = `You are the Medical Exam Simulation Engine (MESE), an elite board examiner for high-stakes medical exams (${examType}).
+Your goal is to output a single highly realistic, clinical vignette-style multiple choice question in JSON format.
+
+User Performance context:
+- Exam Type: ${examType}
+- Target Specialty: ${nextSpecialty}
+- Requested Difficulty: ${nextDifficulty} (Options: "Recall", "Clinical Reasoning", "Board-Level")
+- Is Remediation Mode Active: ${isRemediationActive ? "YES for " + remediationSpecialty : "NO"}
+- Previous Session History: ${JSON.stringify(sessionHistory)}
+
+You must generate an original, realistic medical board question (SBA - Single Best Answer) with exactly 5 plausible options (A to E) suitable for ${examType}.
+The question must be styled as a detailed, multi-sentence clinical vignette (e.g., age, sex, chief complaint, physical exam findings, labs/imaging, followed by the question).
+
+The response must be in valid JSON format matching this schema:
+{
+  "id": "mese-generated-${Date.now()}",
+  "difficulty": "${nextDifficulty}",
+  "specialty": "${nextSpecialty}",
+  "question": "A complete clinical vignette detailing a patient scenario, ending with a direct question.",
+  "options": [
+    "Option A (Distractor)",
+    "Option B (Distractor)",
+    "Option C (Correct choice or distractor)",
+    "Option D (Distractor)",
+    "Option E (Distractor)"
+  ],
+  "correctAnswerIndex": 2, // 0-indexed index of the correct option
+  "rationale": "An elite level clinical rationale explaining the exact pathophysiological or diagnostic criteria making the selected answer correct, and explicitly explaining why the other 4 distractors are incorrect in this clinical scenario."
+}
+
+Do not include any Markdown headers, code block delimiters (\`\`\`json), or conversational text. Output ONLY valid JSON.`;
+
+    const response = await generateContentWithRetry(client, {
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    try {
+      const parsedQuestion = JSON.parse(response.text || "{}");
+      res.json({
+        question: parsedQuestion,
+        sessionStats: {
+          scorePercent: rawScorePercent,
+          percentile: simulatedPercentile,
+          weakAreas,
+          remediationSpecialty,
+          isRemediationActive
+        }
+      });
+    } catch (parseError) {
+      console.error("MESE Gemini response parse failed, using local seed:", parseError);
+      res.json({
+        question: getSimulatedQuestion(),
+        sessionStats: {
+          scorePercent: rawScorePercent,
+          percentile: simulatedPercentile,
+          weakAreas,
+          remediationSpecialty,
+          isRemediationActive
+        }
+      });
+    }
+  } catch (err) {
+    console.error("MESE Gemini API call failed, using local seed:", err);
+    res.json({
+      question: getSimulatedQuestion(),
+      sessionStats: {
+        scorePercent: rawScorePercent,
+        percentile: simulatedPercentile,
+        weakAreas,
+        remediationSpecialty,
+        isRemediationActive
+      }
+    });
   }
 });
 
@@ -2004,6 +2378,201 @@ Ensure the response contains ONLY raw JSON, conforming exactly to the schema.`;
       nextVitals: currentVitals || { "bp": "120/80", "hr": 80, "rr": 16, "temp": "37.0 °C", "spo2": 98 },
       complicationTriggered: false,
       complicationDescription: ""
+    });
+  }
+});
+
+// --- Global Doctor Match Architect (GDMA) Endpoints ---
+
+// Pre-seeded Mentors Pool for matching
+const GDMA_MENTORS_POOL = [
+  {
+    name: "Dr. Sarah Jenkins, MD",
+    specialty: "Cardiology",
+    location: "United States (Cleveland Clinic)",
+    targetExam: "USMLE Step 1",
+    credentials: "USMLE Step 1: 262 | Step 2 CK: 268 | Cardiology Resident",
+    rate: "$50",
+    bio: "Specializes in high-yield valvular physiology and clinical diagnostic roadmaps. Guided over 140 IMGs into US residencies.",
+    availability: "Available tomorrow at 4:00 PM EST"
+  },
+  {
+    name: "Dr. Amit Patel, MRCP",
+    specialty: "Gastroenterology",
+    location: "United Kingdom (King's College Hospital)",
+    targetExam: "PLAB 1/UKMLA",
+    credentials: "PLAB 1 Pass | MRCP UK | Gastroenterology Registrar",
+    rate: "£35",
+    bio: "Expert in UKMLA exam blueprint mapping and NHS registrar navigation paths. Former PLAB examiner.",
+    availability: "Available Thursday at 2:00 PM BST"
+  },
+  {
+    name: "Dr. Faisal Al-Mansoor, MD",
+    specialty: "Neurology",
+    location: "United States (Johns Hopkins)",
+    targetExam: "USMLE Step 2",
+    credentials: "Step 2 CK: 265 | Neurology Fellow | ECFMG Certified",
+    rate: "$55",
+    bio: "Focused on localized neurology vignettes, stroke criteria, and active clinical reasoning loops. Academic mentor.",
+    availability: "Available Saturday at 10:00 AM EST"
+  },
+  {
+    name: "Dr. Chioma Opara, MBChB",
+    specialty: "Endocrinology",
+    location: "United Kingdom (St Mary's Hospital)",
+    targetExam: "PLAB 1/UKMLA",
+    credentials: "MBChB Liverpool | PLAB Pass | Endocrinology Specialty Trainee",
+    rate: "£35",
+    bio: "Passionate about helping international graduates transition into the NHS training tiers and mastering OSCE clinical cycles.",
+    availability: "Available Monday at 9:00 AM BST"
+  },
+  {
+    name: "Dr. Elena Rostova, MD",
+    specialty: "Pulmonology",
+    location: "United States (Mayo Clinic)",
+    targetExam: "USMLE Step 1",
+    credentials: "USMLE Step 1: 258 | Pulmonology Research Fellow",
+    rate: "$50",
+    bio: "Specializes in acid-base physiology and interstitial respiratory distress profiles. Multi-step board strategist.",
+    availability: "Available Friday at 3:00 PM CST"
+  },
+  {
+    name: "Dr. Kenji Tanaka, MD",
+    specialty: "Nephrology",
+    location: "United States (MGH / Harvard)",
+    targetExam: "USMLE Step 2",
+    credentials: "USMLE Step 2 CK: 270 | Nephrology Resident",
+    rate: "$60",
+    bio: "Renal clearance, electrolyte imbalances, and acute kidney injury board vignette expert. ECFMG advocate.",
+    availability: "Available Wednesday at 5:00 PM EST"
+  }
+];
+
+// 1. Suggest Mentors Endpoint
+app.post("/api/gdma/suggest-mentors", (req, res) => {
+  const { specialty, targetExam } = req.body;
+  
+  // Filter mentors based on target exam or specialty, or default to general list
+  let filtered = GDMA_MENTORS_POOL.filter(
+    m => m.targetExam === targetExam || m.specialty.toLowerCase() === (specialty || "").toLowerCase()
+  );
+  
+  if (filtered.length < 3) {
+    // Fill with others to always return exactly 3 high-quality mentors
+    const remaining = GDMA_MENTORS_POOL.filter(m => !filtered.includes(m));
+    filtered = [...filtered, ...remaining].slice(0, 3);
+  } else {
+    filtered = filtered.slice(0, 3);
+  }
+
+  res.json({ mentors: filtered });
+});
+
+// 2. Chat Assistant with Core Rules & Network Effect
+app.post("/api/gdma/chat", async (req, res) => {
+  const { messages, userProfile } = req.body;
+  const client = getAIClient();
+
+  const systemInstructions = `You are the "Global Doctor Match Architect" (GDMA), the core intelligence of a medical mentorship platform.
+Your user audience comprises medical students/graduates transitioning to the UK NHS (PLAB/UKMLA) or US (USMLE) systems.
+
+CORE DIRECTIVES & OPERATING RULES:
+1. Always follow the CONVERSATION STRUCTURE when providing guidance or roadmaps:
+   - Provide a highly strategic, actionable roadmap (e.g. step-by-step preparation advice).
+   - Recommend a list of 3 suggested mentors currently active in that niche (Choose from the pre-seeded pool, or synthesize matching mentors with realistic bios and schedules).
+   - ALWAYS include a clear Call-To-Action (CTA): "Would you like me to open a booking request for a 30-minute consultation with [Mentor Name]?"
+2. Apply the "NETWORK EFFECT" LOGIC for technical/clinical questions:
+   - If the user asks a technical or medical question (e.g., about Cardiology, Pulmonology, Nephrology, etc.), do NOT just answer it.
+   - Provide a brief, high-yield summary of the answer (1-2 sentences).
+   - Then say: "This is a complex topic. I have connected you to [Doctor Name] who specializes in this area and is available for a 15-minute deep-dive session."
+3. Maintain a highly formal, aspirational, networking-focused, and supportive professional tone suitable for elite licensed medical practitioners.
+
+Pre-seeded Mentors Pool to refer to:
+${JSON.stringify(GDMA_MENTORS_POOL, null, 2)}
+
+Ensure you answer the user's latest query while respecting these structure rules perfectly. Keep replies concise and extremely well-formatted in Markdown.`;
+
+  if (!client) {
+    // Elegant Offline Fallback matching all guidelines
+    const latestUserMsg = messages[messages.length - 1]?.content || "";
+    let responseText = "";
+
+    // Let's analyze keywords
+    if (latestUserMsg.toLowerCase().includes("cardio") || latestUserMsg.toLowerCase().includes("valve") || latestUserMsg.toLowerCase().includes("murmur")) {
+      responseText = `### 🫀 Strategic Cardiology Prep & Matching Guidance
+
+To master high-yield Cardiology (such as Valvular Pathology, Diastolic Rumbling, and Murmur Auscultation):
+1. **Understand Hemodynamics**: Map left atrial pressure fluctuations with pressure-volume loops.
+2. **Key Clues**: S1 intensity and the presence of an opening snap are highly pathognomonic for mitral stenosis.
+
+This is a complex clinical topic. I have connected you to **Dr. Sarah Jenkins, MD** who specializes in this area and is available for a 15-minute deep-dive session.
+
+#### Suggested Mentors For You:
+1. **Dr. Sarah Jenkins, MD** (US Residency Path)
+   * *Bio*: Valvular physiology expert, Cleveland Clinic.
+   * *Rate*: $50 / session.
+2. **Dr. Amit Patel, MRCP** (UK NHS Path)
+   * *Bio*: Gastroenterology Registrar, former PLAB examiner.
+   * *Rate*: £35 / session.
+3. **Dr. Elena Rostova, MD** (US Residency Path)
+   * *Bio*: Interstitial distress specialist, Mayo Clinic.
+   * *Rate*: $50 / session.
+
+Would you like me to open a booking request for a 30-minute consultation with **Dr. Sarah Jenkins, MD**?`;
+    } else {
+      responseText = `### 🗺️ Licensing Exam Strategic Transition Guidance
+
+Navigating international pathways (such as USMLE or PLAB/UKMLA) requires structured execution:
+1. **Benchmark Baseline**: Complete a full diagnostic block to identify organ-system weaknesses.
+2. **High-Yield Spaced Repetition**: Pair clinical vignettes with spaced review cycles.
+3. **Clinical Integration**: Focus on multi-step reasoning over raw recall.
+
+#### Suggested Mentors For Your Profile:
+1. **Dr. Sarah Jenkins, MD** (USMLE Step 1/2 Specialist)
+   * *Credentials*: USMLE Step 1: 262 | Step 2 CK: 268
+   * *Rate*: $50 / session
+2. **Dr. Amit Patel, MRCP** (PLAB/UKMLA Specialist)
+   * *Credentials*: NHS Registrar | PLAB Pass
+   * *Rate*: £35 / session
+3. **Dr. Faisal Al-Mansoor, MD** (USMLE Step 2 Fellowship Specialist)
+   * *Credentials*: Neurology Fellow | Johns Hopkins
+   * *Rate*: $55 / session
+
+Would you like me to open a booking request for a 30-minute consultation with **Dr. Sarah Jenkins, MD** or **Dr. Amit Patel, MRCP**?`;
+    }
+
+    return res.json({ response: responseText });
+  }
+
+  try {
+    // Map existing history to Gemini contents structure
+    const systemPromptAndHistory = [
+      { role: "user", parts: [{ text: systemInstructions }] },
+      { role: "model", parts: [{ text: "Acknowledged. I am initialized as the Global Doctor Match Architect (GDMA) and will adhere strictly to all formatting, mentorship, roadmap, and network effect directives." }] },
+      ...messages.map((m: any) => ({
+        role: m.role === "assistant" ? "model" : "user",
+        parts: [{ text: m.content }]
+      }))
+    ];
+
+    const response = await generateContentWithRetry(client, {
+      model: "gemini-3.5-flash",
+      contents: systemPromptAndHistory,
+    });
+
+    res.json({ response: response.text });
+  } catch (err: any) {
+    console.error("GDMA Gemini Chat error, returning fallback:", err);
+    res.json({
+      response: `### 💻 offline Mode Transition Guidance
+
+To succeed in your licensing transition:
+1. Master core pathophysiology and clinical reasoning loops.
+2. Partner with active, verified registrar or resident mentors.
+
+Suggested Mentor: **Dr. Sarah Jenkins, MD** (USMLE Specialist) or **Dr. Amit Patel, MRCP** (PLAB Specialist).
+
+Would you like me to open a booking request for a 30-minute consultation with **Dr. Sarah Jenkins, MD**?`
     });
   }
 });
