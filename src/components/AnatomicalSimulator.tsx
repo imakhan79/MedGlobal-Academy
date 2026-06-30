@@ -7,10 +7,16 @@ import {
   Info, 
   Layers, 
   Sliders, 
-  Dribbble, 
   Compass, 
   Check, 
-  HelpCircle 
+  HelpCircle,
+  Volume2,
+  Sun,
+  Maximize2,
+  ZoomIn,
+  Tv,
+  Grid,
+  Heart
 } from "lucide-react";
 
 interface AnatomicalSimulatorProps {
@@ -33,11 +39,11 @@ interface Hotspot {
 interface SystemConfig {
   name: string;
   image: string;
-  hotspots: Hotspot[];
-  normalVitals: { label: string; value: string }[];
-  pathologyVitals: { label: string; value: string }[];
   pathologyLabel: string;
   waveType: "cardio" | "respiratory" | "neuro" | "reproductive" | "nephrology" | "digestive" | "ortho" | "endocrine";
+  normalVitals: { label: string; value: string }[];
+  pathologyVitals: { label: string; value: string }[];
+  hotspots: Hotspot[];
 }
 
 const SYSTEM_IMAGES = {
@@ -358,6 +364,8 @@ const SYSTEM_CONFIGS: Record<string, SystemConfig> = {
   }
 };
 
+type Modality = "schema" | "radiology" | "histology" | "ultrasound";
+
 export default function AnatomicalSimulator({
   questionText,
   specialty,
@@ -367,14 +375,31 @@ export default function AnatomicalSimulator({
 }: AnatomicalSimulatorProps) {
   const [activeSystem, setActiveSystem] = useState<SystemConfig>(SYSTEM_CONFIGS.Cardiovascular);
   const [viewMode, setViewMode] = useState<"normal" | "pathology">("normal");
+  const [modality, setModality] = useState<Modality>("schema");
+  
+  // Custom workstation states
+  const [brightness, setBrightness] = useState(100); // 50 to 150 %
+  const [contrast, setContrast] = useState(100);   // 50 to 150 %
+  const [zoom, setZoom] = useState(100);           // 100 to 200 %
+  const [enableCalipers, setEnableCalipers] = useState(false);
+  const [dopplerAudio, setDopplerAudio] = useState(false);
+  
+  // Interactive pinpoint spotlight for Radiology
+  const [spotlightPos, setSpotlightPos] = useState({ x: 50, y: 50 });
+  const [isHoveringViewport, setIsHoveringViewport] = useState(false);
+
   const [hoveredHotspot, setHoveredHotspot] = useState<Hotspot | null>(null);
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
+  
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
 
   // Auto-detect system based on question text and specialty keywords
   useEffect(() => {
     const text = (questionText + " " + specialty).toLowerCase();
-    
     let matchedSystemKey = "Cardiovascular";
 
     if (
@@ -490,6 +515,78 @@ export default function AnatomicalSimulator({
     }
   }, [isSubmitted, questionText]);
 
+  // Real-time Audio Doppler Generator (Synth)
+  useEffect(() => {
+    if (dopplerAudio) {
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioCtx) return;
+
+        const ctx = new AudioCtx();
+        audioContextRef.current = ctx;
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = "sine";
+        
+        // Base pitch depending on active system
+        let baseFreq = 120;
+        if (activeSystem.waveType === "neuro") baseFreq = 250;
+        if (activeSystem.waveType === "respiratory") baseFreq = 80;
+
+        osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+        gain.gain.setValueAtTime(0.015, ctx.currentTime); // Low safe volume
+
+        osc.start();
+        oscillatorRef.current = osc;
+        gainNodeRef.current = gain;
+
+        // Pulse interval loop to simulate heartbeat/breathing rates
+        let timer: any;
+        const speed = viewMode === "pathology" ? 500 : 850;
+
+        const playPulse = () => {
+          if (!gainNodeRef.current || !audioContextRef.current) return;
+          const now = audioContextRef.current.currentTime;
+          
+          if (activeSystem.waveType === "cardio") {
+            // Simulated Lub-Dub sound
+            gainNodeRef.current.gain.setValueAtTime(0.03, now);
+            oscillatorRef.current?.frequency.setValueAtTime(baseFreq + 40, now);
+            gainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+            setTimeout(() => {
+              if (!gainNodeRef.current || !audioContextRef.current) return;
+              const now2 = audioContextRef.current.currentTime;
+              gainNodeRef.current.gain.setValueAtTime(0.025, now2);
+              oscillatorRef.current?.frequency.setValueAtTime(baseFreq, now2);
+              gainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now2 + 0.18);
+            }, 180);
+          } else {
+            // Respiratory / neural whoosh loop
+            gainNodeRef.current.gain.setValueAtTime(0.001, now);
+            gainNodeRef.current.gain.linearRampToValueAtTime(0.02, now + 0.2);
+            gainNodeRef.current.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+          }
+        };
+
+        timer = setInterval(playPulse, speed);
+
+        return () => {
+          clearInterval(timer);
+          osc.stop();
+          ctx.close();
+        };
+      } catch (err) {
+        console.warn("Audio Context could not initialize:", err);
+      }
+    }
+  }, [dopplerAudio, activeSystem, viewMode]);
+
   // Real-time Waveform Sweep Generator
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -510,7 +607,7 @@ export default function AnatomicalSimulator({
       const centerY = height / 2;
 
       // Draw grid line background
-      ctx.strokeStyle = "rgba(186, 230, 253, 0.2)";
+      ctx.strokeStyle = "rgba(186, 230, 253, 0.12)";
       ctx.lineWidth = 0.5;
       for (let x = 0; x < width; x += 15) {
         ctx.beginPath();
@@ -547,58 +644,29 @@ export default function AnatomicalSimulator({
         switch (activeSystem.waveType) {
           case "cardio":
             if (viewMode === "normal") {
-              // ECG Sinus Rhythm Wave
               const cycle = (x + offset) % 120;
-              if (cycle < 10) y = centerY; // Flat isoelectric
+              if (cycle < 10) y = centerY;
               else if (cycle < 18) y = centerY - Math.sin((cycle - 10) * Math.PI / 8) * 4; // P wave
-              else if (cycle < 22) y = centerY; // PQ segment
-              else if (cycle === 23) y = centerY + 3; // Q wave drop
-              else if (cycle === 24) y = centerY - 25; // Tall R wave peak
-              else if (cycle === 25) y = centerY + 6; // S wave drop
-              else if (cycle < 35) y = centerY; // ST segment
-              else if (cycle < 48) y = jestT(cycle - 35); // T wave
+              else if (cycle < 22) y = centerY;
+              else if (cycle === 23) y = centerY + 3; // Q
+              else if (cycle === 24) y = centerY - 25; // R
+              else if (cycle === 25) y = centerY + 6; // S
+              else if (cycle < 35) y = centerY;
+              else if (cycle < 48) y = centerY - Math.sin((cycle - 35) * Math.PI / 13) * 6; // T
               else y = centerY;
-
-              function jestT(val: number) {
-                return centerY - Math.sin(val * Math.PI / 13) * 6;
-              }
             } else {
-              // Pathology ECG: Depends on question keywords
               const questionLower = questionText.toLowerCase();
               if (questionLower.includes("st-segment") || questionLower.includes("stemi") || questionLower.includes("myocardial")) {
-                // STEMI ST-Elevation Wave
-                const cycle = (x + offset) % 100; // faster tachycardia
+                const cycle = (x + offset) % 100;
                 if (cycle < 8) y = centerY;
-                else if (cycle < 16) y = centerY - Math.sin((cycle - 8) * Math.PI / 8) * 5; // P wave
+                else if (cycle < 16) y = centerY - Math.sin((cycle - 8) * Math.PI / 8) * 5;
                 else if (cycle < 19) y = centerY;
-                else if (cycle === 20) y = centerY + 3; // Q
-                else if (cycle === 21) y = centerY - 28; // R peak
-                else if (cycle === 22) y = centerY - 14; // Massive ST-elevation!
-                else if (cycle < 38) y = centerY - 12 - Math.sin((cycle - 22) * Math.PI / 16) * 6; // ST-elevation merging with T wave
+                else if (cycle === 20) y = centerY + 3;
+                else if (cycle === 21) y = centerY - 28;
+                else if (cycle === 22) y = centerY - 14; // STEMI Elevation
+                else if (cycle < 38) y = centerY - 12 - Math.sin((cycle - 22) * Math.PI / 16) * 6;
                 else y = centerY;
-              } else if (questionLower.includes("digoxin") || questionLower.includes("furosemide")) {
-                // Digoxin Toxicity scooped ST and PVC beat
-                const cycle = (x + offset) % 200; // bradycardia
-                if (cycle < 15) y = centerY;
-                else if (cycle < 25) y = centerY - Math.sin((cycle - 15) * Math.PI / 10) * 3; // P
-                else if (cycle < 32) y = centerY; // long PR interval
-                else if (cycle === 33) y = centerY - 15; // small R
-                else if (cycle === 34) y = centerY + 18; // scooped S drop
-                else if (cycle < 60) y = centerY + 6 - Math.cos((cycle - 34) * Math.PI / 13) * 6; // Scooped Dali Mustache tick
-                else if (cycle < 110) y = centerY;
-                else if (cycle >= 110 && cycle < 135) {
-                  // PVC ventricular beat (No P wave, wide bizarre QRS)
-                  const pvcCycle = cycle - 110;
-                  if (pvcCycle < 3) y = centerY;
-                  else if (pvcCycle === 4) y = centerY + 10;
-                  else if (pvcCycle < 9) y = centerY - 22; // wide peak
-                  else if (pvcCycle < 16) y = centerY + 14; // wide S drop
-                  else y = centerY - Math.sin((pvcCycle - 16) * Math.PI / 10) * 8; // Inverted T wave
-                } else {
-                  y = centerY;
-                }
               } else {
-                // General Arrhythmia
                 const cycle = (x + offset) % 90;
                 if (cycle < 10) y = centerY;
                 else if (cycle < 16) y = centerY - 2;
@@ -612,86 +680,62 @@ export default function AnatomicalSimulator({
 
           case "respiratory":
             if (viewMode === "normal") {
-              // Smooth, deep respiratory flow curve
               y = centerY - Math.sin(timeFactor * 0.4) * 16;
             } else {
-              // Rapid, shallow pathologically restricted respiratory curve
               y = centerY - Math.sin(timeFactor * 1.1) * 7 - Math.cos(timeFactor * 0.2) * 2;
             }
             break;
 
           case "neuro":
             if (viewMode === "normal") {
-              // Desynchronized high-frequency alpha waves
               y = centerY - Math.sin(timeFactor * 2.5) * 4 - Math.cos(timeFactor * 1.4) * 3;
             } else {
-              // Epileptogenic Hypersynchronous Spike-and-Wave Pattern
               const cycle = (x + offset) % 45;
-              if (cycle < 5) {
-                y = centerY - 22; // Sharp spike peak
-              } else if (cycle === 5) {
-                y = centerY + 15; // Sharp spike rebound
-              } else if (cycle < 25) {
-                // Smooth dome slow wave
-                y = centerY - Math.sin((cycle - 5) * Math.PI / 20) * 16;
-              } else {
-                y = centerY + Math.sin((cycle - 25) * Math.PI / 20) * 2;
-              }
+              if (cycle < 5) y = centerY - 22; // Sharp neuro spike
+              else if (cycle === 5) y = centerY + 15;
+              else if (cycle < 25) y = centerY - Math.sin((cycle - 5) * Math.PI / 20) * 16;
+              else y = centerY + Math.sin((cycle - 25) * Math.PI / 20) * 2;
             }
             break;
 
           case "reproductive":
             if (viewMode === "normal") {
-              // Low resting muscle tone
               y = centerY - Math.sin(timeFactor * 0.1) * 2;
             } else {
-              // Irritable, sweeping contraction spikes (Cardiotocography)
               const cycle = (x + offset) % 240;
-              if (cycle < 100) {
-                y = centerY;
-              } else {
-                // Bell-shaped contraction curve representing preeclamptic stress / late deceleration
-                y = centerY - Math.sin((cycle - 100) * Math.PI / 140) * 20;
-              }
+              if (cycle < 100) y = centerY;
+              else y = centerY - Math.sin((cycle - 100) * Math.PI / 140) * 20;
             }
             break;
 
           case "nephrology":
             if (viewMode === "normal") {
-              // Steady vascular filtration pulses
               y = centerY - Math.sin(timeFactor * 0.8) * 8 * (Math.sin(timeFactor * 0.05) + 1.2);
             } else {
-              // Extremely congested, low-flow sluggish peaks
               y = centerY - Math.sin(timeFactor * 0.2) * 3 - Math.sin(timeFactor * 1.8) * 1.5;
             }
             break;
 
           case "digestive":
             if (viewMode === "normal") {
-              // 3 cpm steady slow motility waves
               y = centerY - Math.sin(timeFactor * 0.15) * 10;
             } else {
-              // Spasmodic, hyper-acidic gastrointestinal spikes
               y = centerY - Math.sin(timeFactor * 0.6) * 14 - Math.cos(timeFactor * 1.8) * 5;
             }
             break;
 
           case "ortho":
             if (viewMode === "normal") {
-              // Smooth, dynamic stress curve
               y = centerY - Math.sin(timeFactor * 0.5) * 12;
             } else {
-              // Heavy friction spikes indicating microfractures/subchondral shear
               y = centerY - Math.sin(timeFactor * 0.5) * 12 - (Math.random() - 0.5) * 4;
             }
             break;
 
           case "endocrine":
             if (viewMode === "normal") {
-              // Stable hormonal oscillations
               y = centerY - Math.sin(timeFactor * 0.2) * 9;
             } else {
-              // Hyperactive thyrotoxic spikes
               y = centerY - Math.sin(timeFactor * 1.4) * 18 - Math.cos(timeFactor * 0.35) * 4;
             }
             break;
@@ -708,24 +752,24 @@ export default function AnatomicalSimulator({
       }
 
       ctx.stroke();
-      ctx.shadowBlur = 0; // reset shadow for next draw operations
+      ctx.shadowBlur = 0;
 
-      // Draw sweeping light indicator at the leading edge
+      // Leading edge sweeping indicator
       ctx.fillStyle = viewMode === "normal" ? "#38bdf8" : "#f87171";
       ctx.beginPath();
       ctx.arc(width - 5, centerY, 4, 0, Math.PI * 2);
       ctx.fill();
 
-      // Add a small real-time sweep label
-      ctx.fillStyle = "#64748B";
-      ctx.font = "bold 8px monospace";
-      ctx.fillText("LIVE PATHOPHYSIOLOGICAL TELEMETRY SWEEP", 10, 15);
+      // Top corner telemetry sweep speed label
+      ctx.fillStyle = "#475569";
+      ctx.font = "bold 7px monospace";
+      ctx.fillText(`SWEEP APERTURE STATE: ${modality.toUpperCase()}`, 10, 15);
       
       const rhythmName = viewMode === "normal" ? "PHYSIOLOGICAL BASELINE" : activeSystem.pathologyLabel.toUpperCase();
-      ctx.fillStyle = viewMode === "normal" ? "#0369a1" : "#b91c1c";
-      ctx.fillText(`STATUS: ${rhythmName}`, 10, height - 10);
+      ctx.fillStyle = viewMode === "normal" ? "#0284c7" : "#ef4444";
+      ctx.fillText(`STATUS: ${rhythmName}`, 10, height - 8);
 
-      offset += viewMode === "normal" ? 1.5 : 2.5; // faster speed during pathology
+      offset += viewMode === "normal" ? 1.5 : 2.5;
       animationFrameId = requestAnimationFrame(draw);
     };
 
@@ -734,68 +778,192 @@ export default function AnatomicalSimulator({
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
-  }, [activeSystem, viewMode, questionText]);
+  }, [activeSystem, viewMode, questionText, modality]);
 
   const activeVitals = viewMode === "normal" ? activeSystem.normalVitals : activeSystem.pathologyVitals;
 
+  // Track cursor position on viewport container to position the spotlight
+  const handleViewportMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    setSpotlightPos({ x, y });
+  };
+
+  // Render specific modality layout effects
+  const getModalityFilters = () => {
+    let filterString = `brightness(${brightness}%) contrast(${contrast}%)`;
+    if (modality === "radiology") {
+      // Create cool grayscale x-ray style
+      filterString += " grayscale(1) invert(0.9) hue-rotate(180deg) brightness(1.1) contrast(1.3)";
+    } else if (modality === "histology") {
+      // Classic H&E pink and purple biopsy stain effect
+      filterString += " sepia(0.5) hue-rotate(290deg) saturate(2.2) contrast(1.2)";
+    } else if (modality === "ultrasound") {
+      // Grainy dark sonar contrast
+      filterString += " grayscale(1) brightness(0.7) contrast(1.8)";
+    } else {
+      // Normal Schema view
+      if (viewMode === "pathology") {
+        filterString += " saturate(1.3) contrast(1.15)";
+      } else {
+        filterString += " saturate(0.95)";
+      }
+    }
+    return filterString;
+  };
+
   return (
-    <div className="bg-white border border-[#E2E8F0] rounded-xl overflow-hidden shadow-sm flex flex-col h-full" id="anatomical-simulator-panel">
-      {/* Simulation Header */}
-      <div className="bg-[#0F172A] p-4 text-white flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <Activity className={`h-4.5 w-4.5 ${viewMode === "pathology" ? "text-rose-500 animate-pulse" : "text-sky-400"}`} />
+    <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl flex flex-col h-full text-slate-100" id="advanced-pacs-simulator-panel">
+      
+      {/* Top PACS Workstation Header Bar */}
+      <div className="bg-[#020617] px-4 py-3 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
+            <Tv className={`h-4.5 w-4.5 ${viewMode === "pathology" ? "text-rose-500 animate-pulse" : "text-sky-400"}`} />
+          </div>
           <div>
-            <h3 className="text-xs uppercase tracking-widest font-extrabold text-slate-300">Anatomical Simulator</h3>
-            <p className="text-[10px] font-semibold text-sky-400 uppercase tracking-wider">{activeSystem.name}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] font-black tracking-widest bg-slate-800 text-slate-300 py-0.5 px-1.5 rounded uppercase font-mono">
+                PACS WORKSTATION v3.2
+              </span>
+              <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                ONLINE
+              </span>
+            </div>
+            <h3 className="text-xs font-serif italic font-extrabold text-white mt-0.5">
+              MRN: 742-OBX-9 • Patient Twin Simulator
+            </h3>
           </div>
         </div>
-        <div className="flex bg-[#1E293B] border border-slate-700 p-0.5 rounded-lg text-[9px] font-bold uppercase tracking-widest">
+
+        {/* Dynamic physiological normal vs pathology toggle */}
+        <div className="flex bg-slate-950 border border-slate-800 p-0.5 rounded-xl text-[9px] font-black uppercase tracking-widest font-mono">
           <button
             onClick={() => setViewMode("normal")}
-            className={`px-2 py-1 rounded transition-all cursor-pointer ${viewMode === "normal" ? "bg-[#0ea5e9] text-white" : "text-slate-400 hover:text-white"}`}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${viewMode === "normal" ? "bg-sky-500 text-white shadow" : "text-slate-400 hover:text-white"}`}
           >
-            Normal
+            <Activity className="h-3 w-3" />
+            <span>Normal</span>
           </button>
           <button
             onClick={() => setViewMode("pathology")}
-            className={`px-2 py-1 rounded transition-all cursor-pointer ${viewMode === "pathology" ? "bg-rose-600 text-white" : "text-slate-400 hover:text-white"}`}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${viewMode === "pathology" ? "bg-rose-600 text-white shadow" : "text-slate-400 hover:text-white"}`}
           >
-            Pathology
+            <AlertCircle className="h-3 w-3" />
+            <span>Pathological</span>
           </button>
         </div>
       </div>
 
-      {/* Main Simulation View Area */}
-      <div className="relative bg-slate-900 border-b border-[#E2E8F0] aspect-square w-full select-none flex items-center justify-center overflow-hidden">
-        {/* Dynamic high fidelity illustration */}
-        <img
-          src={activeSystem.image}
-          alt={activeSystem.name}
-          className="w-full h-full object-cover transition-all duration-700 opacity-90"
-          style={{
-            filter: viewMode === "pathology" ? "saturate(1.4) contrast(1.1)" : "saturate(0.9)"
-          }}
-          referrerPolicy="no-referrer"
-        />
+      {/* Interactive Scan Modality Tabs Selector */}
+      <div className="bg-[#0f172a] px-3 py-2 border-b border-slate-800 flex gap-1 overflow-x-auto scrollbar-none shrink-0 font-mono text-[9px] font-black uppercase tracking-wider">
+        {[
+          { id: "schema", label: "Anatomical Schema", icon: Compass },
+          { id: "radiology", label: "Radiology (X-Ray/CT)", icon: Maximize2 },
+          { id: "histology", label: "Histopathology (Biopsy)", icon: Layers },
+          { id: "ultrasound", label: "Doppler Sonography", icon: Volume2 }
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = modality === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setModality(tab.id as Modality);
+                setSelectedHotspot(null);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border transition-all cursor-pointer whitespace-nowrap ${
+                isActive 
+                  ? "bg-slate-800 border-slate-700 text-sky-400 font-bold shadow-sm" 
+                  : "bg-slate-900/50 border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/40"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5 shrink-0" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        {/* Outer glowing border indicator based on system mode */}
+      {/* Main Workstation View Area (The screen) */}
+      <div 
+        ref={containerRef}
+        onMouseMove={handleViewportMouseMove}
+        onMouseEnter={() => setIsHoveringViewport(true)}
+        onMouseLeave={() => setIsHoveringViewport(false)}
+        className="relative bg-slate-950 aspect-square w-full select-none flex items-center justify-center overflow-hidden cursor-crosshair border-b border-slate-800"
+      >
+        {/* Dynamic modality styled clinical image */}
         <div 
-          className={`absolute inset-0 border-2 transition-all duration-500 pointer-events-none ${
-            viewMode === "pathology" ? "border-rose-500/20 shadow-[inset_0_0_20px_rgba(239,68,68,0.25)]" : "border-sky-500/10 shadow-[inset_0_0_15px_rgba(14,165,233,0.1)]"
-          }`}
-        />
+          className="w-full h-full transition-transform duration-500 overflow-hidden relative flex items-center justify-center"
+          style={{ transform: `scale(${zoom / 100})` }}
+        >
+          {modality === "histology" ? (
+            /* Custom generative Histopathology cellular grid background */
+            <div className="absolute inset-0 bg-[#31002e] flex flex-wrap items-center justify-center p-2 opacity-80 mix-blend-screen pointer-events-none">
+              <div className="w-full h-full grid grid-cols-8 gap-4 opacity-45">
+                {Array.from({ length: 48 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-violet-600/60 border border-violet-400 flex items-center justify-center">
+                      <div className="w-2.5 h-2.5 rounded-full bg-indigo-950 border border-indigo-400" />
+                    </div>
+                    <span className="text-[6px] font-mono text-pink-400 mt-1">Nuc-{i+10}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
-        {/* Dynamic pathology overlay effect (Red alert mask) */}
-        {viewMode === "pathology" && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.15, 0.05, 0.15, 0.08] }}
-            transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-            className="absolute inset-0 bg-red-600/10 pointer-events-none mix-blend-color-burn"
+          <img
+            src={activeSystem.image}
+            alt={activeSystem.name}
+            className="w-full h-full object-cover opacity-85"
+            style={{ filter: getModalityFilters() }}
+            referrerPolicy="no-referrer"
           />
+
+          {/* Caliper grid overlay overlay */}
+          {enableCalipers && (
+            <div className="absolute inset-0 border border-emerald-500/25 pointer-events-none flex items-center justify-center">
+              <div className="absolute top-1/2 left-0 w-full h-[0.5px] bg-emerald-400/50" />
+              <div className="absolute left-1/2 top-0 h-full w-[0.5px] bg-emerald-400/50" />
+              <div className="absolute top-12 left-12 w-20 h-20 border-l border-t border-emerald-400/60 text-[8px] font-mono text-emerald-400 p-1">
+                <span>Cal-X: 1.2 cm</span>
+              </div>
+            </div>
+          )}
+
+          {/* Doppler ultrasound dynamic flow lines */}
+          {modality === "ultrasound" && (
+            <div className="absolute inset-0 pointer-events-none flex flex-col justify-around p-8 opacity-65">
+              <div className="w-full h-2 bg-gradient-to-r from-cyan-500 via-transparent to-red-500 animate-pulse rounded blur-xs" />
+              <div className="w-full h-3 bg-gradient-to-r from-red-500/50 via-cyan-500/50 to-transparent animate-bounce rounded blur-xs" />
+            </div>
+          )}
+        </div>
+
+        {/* Dynamic spotlamp magnifier scope for Radiology modality */}
+        {modality === "radiology" && isHoveringViewport && (
+          <div 
+            className="absolute rounded-full border-2 border-dashed border-sky-400/80 shadow-[0_0_25px_rgba(56,189,248,0.4)] pointer-events-none bg-sky-900/15 mix-blend-overlay"
+            style={{ 
+              width: "100px", 
+              height: "100px", 
+              left: `${spotlightPos.x}%`, 
+              top: `${spotlightPos.y}%`, 
+              transform: "translate(-50%, -50%)" 
+            }}
+          >
+            <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-sky-400 text-[7px] font-bold font-mono py-0.5 px-1 rounded shadow border border-sky-500/30 whitespace-nowrap uppercase">
+              Spotlamp: {Math.round(spotlightPos.x)}%X
+            </div>
+          </div>
         )}
 
-        {/* Anatomical Hotspots Overlaid */}
+        {/* Anatomical Labeled Hotspots */}
         {activeSystem.hotspots.map((spot) => {
           const isSelected = selectedHotspot?.id === spot.id;
           return (
@@ -804,12 +972,12 @@ export default function AnatomicalSimulator({
               className="absolute"
               style={{ left: `${spot.x}%`, top: `${spot.y}%`, transform: "translate(-50%, -50%)" }}
             >
-              {/* Outer pulsing ring */}
+              {/* Glowing Landmark Target */}
               <button
                 onClick={() => setSelectedHotspot(isSelected ? null : spot)}
                 onMouseEnter={() => setHoveredHotspot(spot)}
                 onMouseLeave={() => setHoveredHotspot(null)}
-                className="relative flex items-center justify-center w-7 h-7 group cursor-pointer outline-none focus:ring-2 focus:ring-sky-500 rounded-full"
+                className="relative flex items-center justify-center w-8 h-8 group cursor-pointer outline-none rounded-full"
               >
                 <span 
                   className={`absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping duration-1000 ${
@@ -817,26 +985,26 @@ export default function AnatomicalSimulator({
                   }`} 
                 />
                 <span 
-                  className={`relative inline-flex rounded-full h-3 w-3 shadow-sm border border-white transition-transform group-hover:scale-125 ${
+                  className={`relative inline-flex rounded-full h-3.5 w-3.5 shadow-md border-2 border-white transition-transform group-hover:scale-125 ${
                     viewMode === "pathology" ? "bg-red-600" : "bg-sky-500"
                   }`} 
                 />
               </button>
 
-              {/* Hover Tooltip (Desktop) */}
+              {/* Hover Tooltip overlay */}
               <AnimatePresence>
                 {hoveredHotspot?.id === spot.id && !selectedHotspot && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: 10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9 }}
-                    className="absolute z-30 bottom-8 left-1/2 -translate-x-1/2 w-48 bg-slate-900/95 backdrop-blur-sm border border-slate-700 text-white rounded-lg p-2.5 text-left text-[10px] leading-relaxed shadow-xl pointer-events-none"
+                    className="absolute z-30 bottom-10 left-1/2 -translate-x-1/2 w-56 bg-slate-950 border border-slate-700 text-white rounded-xl p-3 text-left text-[10px] leading-relaxed shadow-2xl pointer-events-none"
                   >
-                    <div className="font-bold border-b border-slate-700 pb-1 mb-1 flex items-center justify-between">
-                      <span>{spot.name}</span>
-                      <Info className="h-3 w-3 text-sky-400" />
+                    <div className="font-bold border-b border-slate-800 pb-1.5 mb-1.5 flex items-center justify-between font-mono">
+                      <span className="text-sky-400">PIN: {spot.name.toUpperCase()}</span>
+                      <Info className="h-3.5 w-3.5 text-sky-400" />
                     </div>
-                    <p className="text-slate-300">
+                    <p className="text-slate-300 font-sans">
                       {viewMode === "normal" ? spot.normalDesc : spot.pathologyDesc}
                     </p>
                   </motion.div>
@@ -846,39 +1014,46 @@ export default function AnatomicalSimulator({
           );
         })}
 
-        {/* Live Pathology Active Banner */}
+        {/* Scanning status badges */}
         {viewMode === "pathology" && (
-          <div className="absolute top-3 left-3 bg-red-600/90 text-white font-black text-[9px] uppercase tracking-widest px-2 py-1 rounded shadow-md border border-red-500 flex items-center gap-1.5 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-            <span>Active Pathology Simulation</span>
+          <div className="absolute top-3 left-3 bg-red-600/95 text-white font-black text-[8px] uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-md border border-red-500 flex items-center gap-1.5 animate-pulse font-mono">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+            <span>Pathology Detected</span>
           </div>
         )}
+
+        {/* Acquisition metadata watermark */}
+        <div className="absolute bottom-3 left-3 bg-slate-950/85 backdrop-blur-xs text-slate-400 text-[7px] font-mono p-2 rounded-lg border border-slate-800/80 uppercase space-y-0.5">
+          <div>Modality: {modality}</div>
+          <div>Matrix: 1024 x 1024 px</div>
+          <div>Field of View (FOV): 240mm</div>
+        </div>
       </div>
 
-      {/* Selected Hotspot Detailed Diagnostic Panel */}
+      {/* Selected Hotspot Diagnostic Report Drawer */}
       <AnimatePresence>
         {selectedHotspot && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-slate-50 border-b border-[#E2E8F0] p-4 text-slate-800 text-xs leading-relaxed"
+            className="bg-slate-950 border-b border-slate-800 p-4 font-mono text-slate-300 text-[10px] leading-relaxed"
           >
-            <div className="flex justify-between items-start mb-1.5">
-              <span className="font-bold text-[#003B95] flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
-                <Compass className="h-4 w-4 text-[#003B95]" />
-                <span>Diagnostic Landmark: {selectedHotspot.name}</span>
+            <div className="flex justify-between items-start mb-2">
+              <span className="font-bold text-sky-400 flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                <Compass className="h-4 w-4 text-sky-400" />
+                <span>Diagnostic Report: {selectedHotspot.name}</span>
               </span>
               <button 
                 onClick={() => setSelectedHotspot(null)}
-                className="text-slate-400 hover:text-slate-700 text-[10px] font-bold uppercase tracking-wider bg-slate-200/60 px-1.5 py-0.5 rounded cursor-pointer"
+                className="text-slate-400 hover:text-white text-[9px] font-bold uppercase tracking-wider bg-slate-800 px-2 py-0.5 rounded-md cursor-pointer border border-slate-700"
               >
-                Close
+                Clear Pin
               </button>
             </div>
-            <p className="text-slate-700 font-medium">
-              <strong className="text-[10px] uppercase tracking-wider mr-1 text-[#64748B]">
-                {viewMode === "normal" ? "Normal Baseline" : "Clinical Manifestation"}:
+            <p className="text-slate-300 bg-slate-900 p-3 rounded-xl border border-slate-800 leading-normal">
+              <strong className="text-[9px] uppercase tracking-wider text-slate-500 block mb-1">
+                {viewMode === "normal" ? "Normal Baseline Physiology" : "Pathological Findings"}:
               </strong>
               {viewMode === "normal" ? selectedHotspot.normalDesc : selectedHotspot.pathologyDesc}
             </p>
@@ -886,8 +1061,75 @@ export default function AnatomicalSimulator({
         )}
       </AnimatePresence>
 
-      {/* Live Waveform Sweeper Canvas */}
-      <div className="bg-slate-950 h-28 w-full border-b border-[#E2E8F0] relative overflow-hidden">
+      {/* Interactive Sliders Workstation Panel */}
+      <div className="bg-[#030712] p-4 border-b border-slate-800 grid grid-cols-2 md:grid-cols-4 gap-4 text-[10px] font-mono">
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-slate-400">
+            <span>BRIGHTNESS</span>
+            <span className="text-sky-400">{brightness}%</span>
+          </div>
+          <input 
+            type="range" 
+            min="50" 
+            max="150" 
+            value={brightness} 
+            onChange={(e) => setBrightness(Number(e.target.value))}
+            className="w-full accent-sky-500 h-1 bg-slate-800 rounded-lg cursor-pointer" 
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-slate-400">
+            <span>CONTRAST</span>
+            <span className="text-sky-400">{contrast}%</span>
+          </div>
+          <input 
+            type="range" 
+            min="50" 
+            max="150" 
+            value={contrast} 
+            onChange={(e) => setContrast(Number(e.target.value))}
+            className="w-full accent-sky-500 h-1 bg-slate-800 rounded-lg cursor-pointer" 
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-slate-400">
+            <span>ZOOM LEVEL</span>
+            <span className="text-sky-400">{zoom}%</span>
+          </div>
+          <input 
+            type="range" 
+            min="100" 
+            max="200" 
+            value={zoom} 
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="w-full accent-sky-500 h-1 bg-slate-800 rounded-lg cursor-pointer" 
+          />
+        </div>
+
+        {/* Toggleable tools */}
+        <div className="flex items-center justify-between gap-2 bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
+          <button 
+            onClick={() => setEnableCalipers(!enableCalipers)}
+            className={`flex flex-col items-center flex-1 py-1 px-1 rounded transition-colors ${enableCalipers ? "text-emerald-400 font-bold" : "text-slate-500"}`}
+          >
+            <Grid className="h-4 w-4" />
+            <span className="text-[7px] mt-0.5">CALIPERS</span>
+          </button>
+          
+          <button 
+            onClick={() => setDopplerAudio(!dopplerAudio)}
+            className={`flex flex-col items-center flex-1 py-1 px-1 rounded transition-colors ${dopplerAudio ? "text-sky-400 font-bold animate-pulse" : "text-slate-500"}`}
+          >
+            <Volume2 className="h-4 w-4" />
+            <span className="text-[7px] mt-0.5">SOUNDS</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Live Waveform Sweeper Canvas screen */}
+      <div className="bg-slate-950 h-28 w-full border-b border-slate-800 relative overflow-hidden shrink-0">
         <canvas 
           ref={canvasRef} 
           width={450} 
@@ -896,15 +1138,15 @@ export default function AnatomicalSimulator({
         />
         
         {/* Dynamic numeric vitals overlay */}
-        <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm border border-slate-800 p-1.5 rounded text-[8px] font-bold text-slate-400 uppercase tracking-widest flex flex-col gap-1">
-          <div className="flex items-center justify-between gap-3">
-            <span>HR:</span>
+        <div className="absolute top-2.5 right-2.5 bg-slate-900/90 backdrop-blur-sm border border-slate-800 p-2 rounded text-[8px] font-bold text-slate-400 uppercase tracking-widest flex flex-col gap-1.5 font-mono">
+          <div className="flex items-center justify-between gap-4">
+            <span>HEART RATE:</span>
             <span className={viewMode === "pathology" ? "text-rose-500 font-extrabold" : "text-sky-400 font-extrabold"}>
-              {viewMode === "pathology" ? "108 bpm" : "72 bpm"}
+              {viewMode === "pathology" ? "108 BPM" : "72 BPM"}
             </span>
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <span>MAP:</span>
+          <div className="flex items-center justify-between gap-4">
+            <span>PERFUSION PRESSURE:</span>
             <span className={viewMode === "pathology" ? "text-rose-400 font-extrabold" : "text-sky-400 font-extrabold"}>
               {viewMode === "pathology" ? "110 mmHg" : "93 mmHg"}
             </span>
@@ -912,23 +1154,23 @@ export default function AnatomicalSimulator({
         </div>
       </div>
 
-      {/* Numerical Vital Diagnostics */}
-      <div className="p-4 bg-[#F8FAFC]/70 flex-grow grid grid-cols-2 gap-2 text-[10px]">
+      {/* Numerical Vital Diagnostics Grid */}
+      <div className="p-4 bg-slate-950/80 flex-grow grid grid-cols-2 gap-2.5 text-[10px] shrink-0">
         {activeVitals.map((vit, idx) => (
-          <div key={idx} className="bg-white border border-[#E2E8F0] p-2 rounded-lg flex flex-col gap-0.5 shadow-sm">
-            <span className="text-[#64748B] font-extrabold uppercase tracking-widest text-[8px]">{vit.label}</span>
-            <span className={`font-bold ${viewMode === "pathology" ? "text-rose-700" : "text-slate-800"}`}>{vit.value}</span>
+          <div key={idx} className="bg-slate-900/50 border border-slate-800 p-2.5 rounded-xl flex flex-col gap-0.5 shadow-sm">
+            <span className="text-slate-500 font-extrabold uppercase tracking-widest text-[7px] font-mono">{vit.label}</span>
+            <span className={`font-bold font-mono ${viewMode === "pathology" ? "text-rose-500" : "text-slate-200"}`}>{vit.value}</span>
           </div>
         ))}
       </div>
 
-      {/* Prompt Instructions */}
-      <div className="bg-slate-50 px-4 py-2 border-t border-[#E2E8F0] text-[9px] text-slate-400 font-medium flex items-center justify-between">
-        <span className="flex items-center gap-1">
-          <Info className="h-3.5 w-3.5 text-[#003B95]" />
-          <span>Click glowing hotspots on the image for details.</span>
+      {/* Prompt / Guide footer */}
+      <div className="bg-slate-950 px-4 py-2.5 border-t border-slate-800 text-[8px] text-slate-500 font-mono flex items-center justify-between shrink-0">
+        <span className="flex items-center gap-1.5">
+          <Info className="h-3.5 w-3.5 text-sky-400" />
+          <span>Interactive multi-modality diagnostic sweep. Highlight pins for full clinical analysis.</span>
         </span>
-        <span className="uppercase font-extrabold text-[8px] tracking-wider text-[#003B95]">Active telemetry</span>
+        <span className="uppercase font-extrabold text-[8px] tracking-wider text-sky-400">TELEMETRY SYNCED</span>
       </div>
     </div>
   );

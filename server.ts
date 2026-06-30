@@ -15,6 +15,9 @@ app.use(express.json());
 
 // Lazy-initialize Gemini SDK to prevent crashes if key is missing on startup
 let aiClient: GoogleGenAI | null = null;
+let isQuotaExhausted = false;
+let quotaExhaustedTimestamp = 0;
+const QUOTA_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes protection window
 
 function getAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -22,6 +25,18 @@ function getAIClient(): GoogleGenAI | null {
     console.warn("GEMINI_API_KEY is not set or using the placeholder. Falling back to simulated medical intelligence responses.");
     return null;
   }
+  
+  if (isQuotaExhausted) {
+    const elapsed = Date.now() - quotaExhaustedTimestamp;
+    if (elapsed < QUOTA_COOLDOWN_MS) {
+      console.warn(`[Quota Protection] Gemini API quota is currently marked as exhausted (${Math.round((QUOTA_COOLDOWN_MS - elapsed) / 1000)}s remaining). Bypassing API calls to prevent latency and spam.`);
+      return null;
+    } else {
+      console.log("[Quota Protection] Cooldown elapsed. Re-enabling Gemini API attempts.");
+      isQuotaExhausted = false;
+    }
+  }
+
   if (!aiClient) {
     aiClient = new GoogleGenAI({
       apiKey: apiKey,
@@ -43,7 +58,7 @@ async function generateContentWithRetry(
     contents: any;
     config?: any;
   }
-): Promise<any> {
+ ): Promise<any> {
   const primaryModel = params.model || "gemini-3.5-flash";
   const backupModel = "gemini-3.1-flash-lite";
   const maxRetries = 3;
@@ -93,6 +108,25 @@ async function generateContentWithRetry(
         
         console.error(`Gemini call failed for ${modelName} (attempt ${attempt}): status=${statusCode}, transient=${isTransient}, message=${error.message || error}`);
         
+        // Check if this is a quota exceeded limit error (specifically 429 or RESOURCE_EXHAUSTED)
+        const isQuotaError = 
+          statusCode === 429 || 
+          String(statusCode) === "429" ||
+          String(statusCode).toUpperCase() === "RESOURCE_EXHAUSTED" ||
+          errStr.includes("quota exceeded") ||
+          errStr.includes("resource_exhausted") ||
+          errStr.includes("rate limit") ||
+          errMsg.includes("quota exceeded") ||
+          errMsg.includes("resource_exhausted") ||
+          errMsg.includes("rate limit");
+
+        if (isQuotaError) {
+          console.warn("[Quota Protection] Daily API Quota/Rate Limit Exceeded detected. Activating offline mode protection to eliminate slow timeouts.");
+          isQuotaExhausted = true;
+          quotaExhaustedTimestamp = Date.now();
+          throw error; // Immediately throw, bypassing retries
+        }
+
         if (!isTransient) {
           throw error;
         }
@@ -104,6 +138,9 @@ async function generateContentWithRetry(
   try {
     return await tryModel(primaryModel);
   } catch (primaryError) {
+    if (isQuotaExhausted) {
+      throw primaryError; // Skip backup if daily quota has already been triggered
+    }
     console.warn(`Primary model ${primaryModel} failed. Falling back to backup model ${backupModel}...`);
     try {
       return await tryModel(backupModel);
@@ -258,78 +295,7 @@ app.post("/api/explain-mcq", async (req, res) => {
     const formattedSelected = String.fromCharCode(65 + Number(selectedAnswer));
     const formattedCorrect = String.fromCharCode(65 + Number(correctAnswer));
 
-    const fallbackResponse = `### 💻 offline Mode: Simulated Personalized AI Breakdown
-
-${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${formattedCorrect}** (${options[correctAnswer]}) as the right choice.` : `⚠️ **Clinical Distinction Check:** You selected **Option ${formattedSelected}** (${options[selectedAnswer] || "None"}), but the correct answer is **Option ${formattedCorrect}** (${options[correctAnswer]}).`}
-
-#### Pathophysiological Deep Dive
-* **Why the correct option is right**: The patient's clinical presentation directly aligns with the pathophysiological process. The clinical rationale is: *"${rationale}"*.
-* **Why the other options are distractors**: Distractors represent closely related clinical mimics, but they lack specific pathognomonic details present in this scenario.
-
-#### High-Yield Board Takeaway
-Always scan the clinical vignette for specific combinations of risk factors, exam findings, and timeline indicators to confidently rule out high-probability lookalikes on exam day!`;
-    
-    return res.json({ response: fallbackResponse });
-  }
-
-  try {
-    const prompt = `You are an expert clinical medical educator. Provide a personalized, professional medical breakdown of the following multiple choice question (MCQ) result.
-
-Question:
-${question}
-
-Options:
-${options.map((opt: string, idx: number) => `${String.fromCharCode(65 + idx)}) ${opt}`).join("\n")}
-
-The student selected: Option ${String.fromCharCode(65 + Number(selectedAnswer))} (${options[selectedAnswer]})
-The correct answer is: Option ${String.fromCharCode(65 + Number(correctAnswer))} (${options[correctAnswer]})
-
-Default Clinical Rationale:
-${rationale}
-
-Please provide a highly educational, personalized medical breakdown for the student. 
-If they got it correct, praise their logic and reinforce high-yield board-style points. 
-If they got it wrong, gently explain why their selected option is incorrect (highlighting clinical key differentiators/lookalikes) and detail why the correct answer is the gold standard choice. 
-Include a brief clinical takeaway section at the end. Use clean Markdown formatting with bold terms for readability.`;
-
-    const response = await generateContentWithRetry(client, {
-      model: "gemini-3.5-flash",
-      contents: prompt,
-    });
-
-    res.json({ response: response.text });
-  } catch (error: any) {
-    console.error("Gemini API error in explain-mcq, falling back to local simulation:", error);
-    const isCorrect = selectedAnswer === correctAnswer;
-    const formattedSelected = String.fromCharCode(65 + Number(selectedAnswer));
-    const formattedCorrect = String.fromCharCode(65 + Number(correctAnswer));
-
-    const fallbackResponse = `### 💻 offline Mode: Simulated Personalized AI Breakdown
- 
-${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${formattedCorrect}** (${options[correctAnswer]}) as the right choice.` : `⚠️ **Clinical Distinction Check:** You selected **Option ${formattedSelected}** (${options[selectedAnswer] || "None"}), but the correct answer is **Option ${formattedCorrect}** (${options[correctAnswer]}).`}
- 
-#### Pathophysiological Deep Dive
-* **Why the correct option is right**: The patient's clinical presentation directly aligns with the pathophysiological process. The clinical rationale is: *"${rationale}"*.
-* **Why the other options are distractors**: Distractors represent closely related clinical mimics, but they lack specific pathognomonic details present in this scenario.
- 
-#### High-Yield Board Takeaway
-Always scan the clinical vignette for specific combinations of risk factors, exam findings, and timeline indicators to confidently rule out high-probability lookalikes on exam day!`;
-    
-    res.json({ response: fallbackResponse });
-  }
-});
-
-// 2.5. MCQ Explain with AI Endpoint
-app.post("/api/explain-mcq", async (req, res) => {
-  const { question, options, selectedAnswer, correctAnswer, rationale } = req.body;
-  const client = getAIClient();
-
-  if (!client) {
-    const isCorrect = selectedAnswer === correctAnswer;
-    const formattedSelected = String.fromCharCode(65 + Number(selectedAnswer));
-    const formattedCorrect = String.fromCharCode(65 + Number(correctAnswer));
-
-    const fallbackResponse = `### 💻 offline Mode: Simulated Personalized AI Breakdown
+    const fallbackResponse = `### 💻 Offline Mode: Simulated Personalized AI Breakdown
 
 ${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${formattedCorrect}** (${options[correctAnswer]}) as the right choice.` : `⚠️ **Clinical Distinction Check:** You selected **Option ${formattedSelected}** (${options[selectedAnswer] || "None"}), but the correct answer is **Option ${formattedCorrect}** (${options[correctAnswer]}).`}
 
@@ -366,8 +332,23 @@ Output in elegant Markdown. Keep your tone highly professional, objective, acade
 
     res.json({ response: response.text });
   } catch (error) {
-    console.error("Gemini API error in explain-mcq, falling back to local pre-set rationale:", error);
-    res.json({ response: `### 💻 offline Mode: Pre-Set Rationale Breakdown\n\n${rationale}` });
+    console.error("Gemini API error in explain-mcq, falling back to local simulation rationale:", error);
+    const isCorrect = selectedAnswer === correctAnswer;
+    const formattedSelected = String.fromCharCode(65 + Number(selectedAnswer));
+    const formattedCorrect = String.fromCharCode(65 + Number(correctAnswer));
+
+    const fallbackResponse = `### 💻 Offline Mode: Simulated Personalized AI Breakdown
+
+${isCorrect ? `🎉 **Excellent job!** You correctly identified **Option ${formattedCorrect}** (${options[correctAnswer]}) as the right choice.` : `⚠️ **Clinical Distinction Check:** You selected **Option ${formattedSelected}** (${options[selectedAnswer] || "None"}), but the correct answer is **Option ${formattedCorrect}** (${options[correctAnswer]}).`}
+
+#### Pathophysiological Deep Dive
+* **Why the correct option is right**: The patient's clinical presentation directly aligns with the pathophysiological process. The clinical rationale is: *"${rationale}"*.
+* **Why the other options are distractors**: Distractors represent closely related clinical mimics, but they lack specific pathognomonic details present in this scenario.
+
+#### High-Yield Board Takeaway
+Always scan the clinical vignette for specific combinations of risk factors, exam findings, and timeline indicators to confidently rule out high-probability lookalikes on exam day!`;
+    
+    res.json({ response: fallbackResponse });
   }
 });
 
