@@ -61,12 +61,12 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
         description: "Analyze ST-segment morphology, rhythm intervals, and reciprocal Lead vector relationships."
       };
     }
-    if (invId === "cxr") {
+    if (invId === "cxr" || (caseId === "tension_pneumothorax" && invId === "cxr")) {
       return {
         title: "Chest Radiography (CXR)",
         url: "/src/assets/images/pulmo_simulation_1782492084090.jpg",
         modality: "radiology" as const,
-        description: "Inspect lung volume inflation levels, flattened diaphragms, bibasilar markings, and heart width."
+        description: "Inspect lung volume inflation levels, pleural lining separation, flattened diaphragms, or pneumothorax lines."
       };
     }
     if (invId === "ct_head") {
@@ -91,6 +91,30 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
         url: "/src/assets/images/endo_simulation_1782492213629.jpg",
         modality: "schema" as const,
         description: "Graphing metabolic anion gap acidosis, severe ketonemic progression, and respiratory compensation."
+      };
+    }
+    if (caseId === "varices" && invId === "endoscopy") {
+      return {
+        title: "Emergency Upper Gastrointestinal Endoscopy",
+        url: "/src/assets/images/gastro_simulation_1782492160980.jpg",
+        modality: "endoscopy" as const,
+        description: "Visualize distal esophageal columns under active, severe variceal pulsatile hemorrhage or active oozing."
+      };
+    }
+    if (caseId === "preeclampsia" && invId === "ultrasound") {
+      return {
+        title: "Obstetric Fetal Assessment Sonography",
+        url: "/src/assets/images/obgyn_simulation_1782492123527.jpg",
+        modality: "ultrasound" as const,
+        description: "Evaluate fetal heartbeat patency, gestational sizing parameters, placenta placement, and surrounding amniotic pocket values."
+      };
+    }
+    if (caseId === "tension_pneumothorax" && invId === "ultrasound") {
+      return {
+        title: "eFAST Pleural Ultrasound (Lung Sliding)",
+        url: "/src/assets/images/ortho_simulation_1782492184456.jpg",
+        modality: "ultrasound" as const,
+        description: "Point-of-Care Ultrasound showing absence of lung-sliding and lack of pleural beach patterns on M-mode."
       };
     }
     return null;

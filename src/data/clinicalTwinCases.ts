@@ -439,5 +439,170 @@ export const CLINICAL_TWIN_PRESETS: ClinicalTwinPreset[] = [
         pearl: "Keep blood pressure below 185/110 mmHg if giving tPA, but do not lower it by more than 15% in the first 24 hours."
       }
     ]
+  },
+  {
+    id: "varices",
+    title: "Severe Hematemesis and Shock",
+    examBoard: "PLAB",
+    difficulty: "Hard",
+    department: "Gastroenterology",
+    disease: "Acute Esophageal Variceal Hemorrhage",
+    patientName: "Arthur Pendelton",
+    age: 54,
+    gender: "Male",
+    occupation: "Retired Musician",
+    medicalHistory: "Chronic Hepatitis C infection, liver cirrhosis (Child-Pugh Class B), portal hypertension.",
+    familyHistory: "Father died of liver failure secondary to alcohol-related cirrhosis.",
+    riskFactors: "Prior heavy alcohol consumption, chronic thrombocytopenia, esophageal varices.",
+    chiefComplaint: "Sudden onset of massive, dark-red blood vomiting (hematemesis) of approximately 800 mL, associated with cold sweats and lightheadedness.",
+    physicalExam: "Extremely pale, lethargic, cold clammy extremities. Abdomen is moderately distended with visible caput medusae, shifting dullness (ascites), and a palpable spleen tip. Scleral icterus present.",
+    initialVitals: { bp: "86/44", hr: 124, rr: 24, temp: "36.4 °C", spo2: 92 },
+    investigations: [
+      { id: "cbc_gastro", name: "Complete Blood Count", result: "WBC: 4.8k/µL, Hb: 6.8 g/dL (critically low), Platelets: 55k/µL." },
+      { id: "coags", name: "Coagulation Profile & LFT", result: "Total Bilirubin: 3.2 mg/dL, Albumin: 2.4 g/dL, INR: 2.1 (severe coagulopathy), Ammonia: 58 µmol/L." },
+      { id: "endoscopy", name: "Urgent Upper Endoscopy (PACS)", result: "Active pulsatile bleeding noted from three large columns of esophageal varices in the lower third of the esophagus." }
+    ],
+    actions: [
+      {
+        id: "varices_correct",
+        text: "Initiate restrictive blood transfusion (target Hb 7-8 g/dL), start IV Octreotide (50mcg bolus, then 50mcg/hr), prophylactic IV Ceftriaxone 1g, and arrange immediate Endoscopic Variceal Ligation (EVL).",
+        category: "management",
+        feedback: "Gold-standard intervention initiated! Resuscitation with octreotide and antibiotic prophylaxis decreases rebleeding and mortality significantly.",
+        correctness: "Correct",
+        scoreImpact: 35,
+        nextVitals: { bp: "102/58", hr: 94, rr: 18, temp: "36.7 °C", spo2: 96 },
+        reasoning: "Octreotide causes splanchnic vasoconstriction, reducing portal pressures. Antibiotics prevent spontaneous bacterial peritonitis. Restrictive transfusion avoids raising portal pressures further.",
+        pathophysiology: "Cirrhosis leads to severe parenchymal fibrosis and increased hepatic vascular resistance, driving blood back into systemic collateral channels (esophageal veins).",
+        pearl: "A restrictive transfusion strategy (transfusing only when Hb < 7 g/dL) is associated with better survival in acute upper GI bleeds than liberal strategies."
+      },
+      {
+        id: "varices_fluid_overload",
+        text: "Infuse 4 liters of Normal Saline rapidly and administer IV Metoprolol to lower his heart rate of 124 bpm.",
+        category: "dangerous",
+        feedback: "Catastrophic rebleeding! Massive fluid overload increases portal pressure, dislodging early clots, while beta-blockers trigger cardiogenic collapse.",
+        correctness: "Dangerous",
+        scoreImpact: -25,
+        nextVitals: { bp: "72/38", hr: 50, rr: 28, temp: "36.2 °C", spo2: 88 },
+        reasoning: "Rapid saline boluses raise hydrostatic portal pressures, causing immediate variceal rupture. Beta-blockers are contraindicated in acute hemorrhagic shock.",
+        pathophysiology: "Abrupt volume expansion raises venous congestion. Heart rate reduction blunts the compensatory mechanisms of acute blood loss.",
+        pearl: "Never administer beta-blockers during an active variceal bleed. They are strictly reserved for primary or secondary prophylaxis after stabilization."
+      }
+    ],
+    complications: {
+      description: "ENCEPHALOPATHY & COMPLICATED COAGULOPATHY: The patient becomes highly confused, agitated, and develops a coarse flapping tremor (asterixis) with further oozing.",
+      vitals: { bp: "84/40", hr: 118, rr: 22, temp: "36.5 °C", spo2: 93 },
+      actions: [
+        {
+          id: "lactulose_rifaximin",
+          text: "Administer Lactulose 30mL orally/via NG tube and transfuse Fresh Frozen Plasma (FFP) to address the INR of 2.1.",
+          category: "management",
+          feedback: "Outstanding stabilization! Lactulose successfully traps ammonia, and FFP addresses severe coagulopathic bleeding.",
+          correctness: "Correct",
+          scoreImpact: 30,
+          nextVitals: { bp: "98/55", hr: 90, rr: 17, temp: "36.8 °C", spo2: 95 },
+          reasoning: "Lactulose is metabolized by colonic bacteria into lactic acid, converting diffusible NH3 to non-diffusible NH4+, promoting its excretion.",
+          pathophysiology: "Blood breakdown products in the GI tract act as a massive nitrogen load, overloading hepatic urea cycle capacity and elevating blood ammonia levels.",
+          pearl: "Asterixis is a classic clinical indicator of metabolic or hepatic encephalopathy."
+        }
+      ]
+    }
+  },
+  {
+    id: "tension_pneumothorax",
+    title: "Acute MVA Chest Trauma",
+    examBoard: "USMLE",
+    difficulty: "Hard",
+    department: "Emergency Medicine",
+    disease: "Tension Pneumothorax",
+    patientName: "Zachary Vance",
+    age: 28,
+    gender: "Male",
+    occupation: "Courier Rider",
+    medicalHistory: "No prior medical conditions.",
+    familyHistory: "Unremarkable.",
+    riskFactors: "High-impact deceleration blunt chest trauma (motorcycle accident).",
+    chiefComplaint: "Severe, sharp, right-sided chest pain and rapidly progressive, suffocating shortness of breath following a motorcycle accident 15 minutes ago.",
+    physicalExam: "Highly agitated, gasping for breath, cyanotic lips and face. Trachea is clinically deviated to the left side. Jugular veins are markedly distended. Right chest is hyper-resonant with completely absent breath sounds.",
+    initialVitals: { bp: "78/40", hr: 132, rr: 32, temp: "36.9 °C", spo2: 81 },
+    investigations: [
+      { id: "ultrasound", name: "eFAST Pleural Ultrasound (PACS)", result: "Absence of lung sliding and pleural waves on the right hemithorax, confirming a severe air pocket." },
+      { id: "cxr", name: "Chest Radiography (PACS)", result: "Massive right-sided radiolucency with complete lung collapse, depression of the right diaphragm, and deviation of the trachea to the left." }
+    ],
+    actions: [
+      {
+        id: "needle_thoracostomy",
+        text: "Perform immediate needle decompression in the 2nd intercostal space at the midclavicular line (or 5th space at anterior axillary line) on the right side, followed by a chest tube.",
+        category: "management",
+        feedback: "Life-saving decision! Air immediately rushes out with a hissing sound, and the blood pressure elevates instantly as venous return is restored.",
+        correctness: "Correct",
+        scoreImpact: 35,
+        nextVitals: { bp: "115/72", hr: 95, rr: 20, temp: "36.9 °C", spo2: 97 },
+        reasoning: "Needle decompression converts a life-threatening tension pneumothorax into a simple pneumothorax by relieving elevated intrathoracic pressure.",
+        pathophysiology: "A one-way valve effect in the pleura allows air to enter the pleural space during inspiration but prevents it from escaping during expiration, compressing the heart and vena cava.",
+        pearl: "Never delay needle decompression in a clinically diagnosed tension pneumothorax to wait for a chest X-ray or CT scan. It is a clinical emergency!"
+      },
+      {
+        id: "trauma_intubate",
+        text: "Intubate immediately and start mechanical ventilation with high PEEP (Positive End-Expiratory Pressure) to correct the severe hypoxia.",
+        category: "dangerous",
+        feedback: "Severe cardiac arrest! Positive pressure ventilation increases pleural pressure rapidly, causing complete vena cava collapse and pulseless electrical activity (PEA).",
+        correctness: "Dangerous",
+        scoreImpact: -30,
+        nextVitals: { bp: "0/0", hr: 0, rr: 0, temp: "36.5 °C", spo2: 0 },
+        reasoning: "Positive pressure ventilation in an untreated tension pneumothorax further elevates intrapleural pressure, completely cutting off venous blood return to the heart.",
+        pathophysiology: "Mechanical breaths pump more air into the trapped pleural space, creating a massive obstructive cardiac tamponade-like effect.",
+        pearl: "Always decompress the chest BEFORE initiating positive pressure ventilation in trauma patients with suspected chest injury."
+      }
+    ]
+  },
+  {
+    id: "preeclampsia",
+    title: "Severe Right Upper Quadrant Pain in Pregnancy",
+    examBoard: "FCPS",
+    difficulty: "Hard",
+    department: "Internal Medicine",
+    disease: "Severe Preeclampsia with HELLP Syndrome",
+    patientName: "Sarah Jenkins",
+    age: 32,
+    gender: "Female",
+    occupation: "Primary School Teacher",
+    medicalHistory: "G1P0 at 34 weeks gestation. Chronic hypertension managed with Methyldopa prior to pregnancy.",
+    familyHistory: "Mother had preeclampsia at 32 weeks.",
+    riskFactors: "Primigravida, chronic hypertension, obesity, maternal age over 30.",
+    chiefComplaint: "Severe, throbbing frontal headache, blurred vision, flashing spots in the eyes (scotomata), and persistent right upper quadrant abdominal pain for 24 hours.",
+    physicalExam: "Hyperreflexic (4+ patellar reflexes with clonus). Diffuse facial and hand edema, marked bilateral pitting pedal edema extending up to the mid-shins. Epigastric and right upper quadrant tenderness is prominent on light palpation.",
+    initialVitals: { bp: "172/114", hr: 96, rr: 20, temp: "37.0 °C", spo2: 95 },
+    investigations: [
+      { id: "cbc_internal", name: "Complete Blood Count", result: "Hb: 9.8 g/dL, Platelets: 62k/µL (thrombocytopenia), Schistocytes present on blood smear." },
+      { id: "ldh_lfts", name: "Comprehensive LFT & LDH", result: "AST: 280 U/L (highly elevated), ALT: 245 U/L, LDH: 820 U/L (hemolysis indicator), Uric Acid: 8.4 mg/dL." },
+      { id: "ultrasound", name: "Fetal Doppler Ultrasound (PACS)", result: "Single live fetus, cephalic, estimated weight 2100g, normal amniotic fluid index. Normal hepatic contour without subcapsular hematoma." }
+    ],
+    actions: [
+      {
+        id: "hellp_management",
+        text: "Initiate IV Magnesium Sulfate (4g loading dose, then 2g/hr infusion), control blood pressure with IV Labetalol 20mg slow push, and prepare for prompt delivery.",
+        category: "management",
+        feedback: "Outstanding medical decision! Magnesium sulfate prevents eclamptic seizures, labetalol controls stroke risk, and delivery is the definitive cure.",
+        correctness: "Correct",
+        scoreImpact: 35,
+        nextVitals: { bp: "142/88", hr: 82, rr: 16, temp: "37.0 °C", spo2: 97 },
+        reasoning: "HELLP syndrome is a severe form of preeclampsia. Anticonvulsant therapy with Magnesium Sulfate is critical to stabilize the motor cortex, and blood pressure must be controlled to prevent intracranial bleeding.",
+        pathophysiology: "Systemic endothelial dysfunction leads to microangiopathic hemolytic anemia, platelet consumption, and hepatic sinusoidal fibrin deposition causing liver injury.",
+        pearl: "Definitive management for HELLP syndrome at or beyond 34 weeks is prompt delivery, regardless of severity score, to halt the maternal endothelial cascade."
+      },
+      {
+        id: "hellp_overhydrate",
+        text: "Infuse 3 liters of Lactated Ringer's rapidly to address her low urine output, and defer delivery until 37 weeks to let the fetus mature.",
+        category: "dangerous",
+        feedback: "Severe pulmonary edema and eclamptic seizure! Overhydrating an endothelial-leaky patient triggers alveolar flooding, while delaying delivery risks maternal demise.",
+        correctness: "Dangerous",
+        scoreImpact: -25,
+        nextVitals: { bp: "188/120", hr: 115, rr: 28, temp: "37.2 °C", spo2: 84 },
+        reasoning: "Capillary leak in preeclampsia makes these patients highly susceptible to fluid overload, leading to flash pulmonary edema. Delivery cannot be safely delayed in active HELLP syndrome.",
+        pathophysiology: "Increased vascular hydrostatic pressure combined with reduced oncotic pressure causes fluid to pour into the pulmonary alveoli.",
+        pearl: "Urine output in severe preeclampsia can be low due to renal vasospasm; do not chase oliguria with fluid boluses as it leads to pulmonary edema."
+      }
+    ]
   }
 ];
+
