@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CLINICAL_TWIN_PRESETS, ClinicalTwinPreset, TwinAction, TwinInvestigation } from "../data/clinicalTwinCases";
-import { Activity, Award, ShieldAlert, Sparkles, RefreshCw, Send, ChevronRight, CheckCircle2, XCircle, Heart, Info, BookOpen, Layers, Lightbulb, Check, AlertTriangle, Play, Settings, Gauge, TrendingUp, Sliders } from "lucide-react";
+import { Activity, Award, ShieldAlert, Sparkles, RefreshCw, Send, ChevronRight, CheckCircle2, XCircle, Heart, Info, BookOpen, Layers, Lightbulb, Check, AlertTriangle, Play, Settings, Gauge, TrendingUp, Sliders, Eye, ZoomIn, Maximize2, Tv } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface BioTwinSimulatorProps {
@@ -40,6 +40,61 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
   // Confidence meter states
   const [diagnosticConfidence, setDiagnosticConfidence] = useState<number>(50);
   const [confidenceHistory, setConfidenceHistory] = useState<{ step: number; value: number; actionText: string }[]>([]);
+
+  // High-Fidelity PACS Workstation States
+  const [selectedImagingId, setSelectedImagingId] = useState<string | null>(null);
+  const [pacsBrightness, setPacsBrightness] = useState<number>(100);
+  const [pacsContrast, setPacsContrast] = useState<number>(100);
+  const [pacsZoom, setPacsZoom] = useState<number>(100);
+  const [pacsCaliperActive, setPacsCaliperActive] = useState<boolean>(false);
+  const [pacsCaliperStart, setPacsCaliperStart] = useState<{ x: number; y: number } | null>(null);
+  const [pacsCaliperEnd, setPacsCaliperEnd] = useState<{ x: number; y: number } | null>(null);
+  const pacsImgRef = useRef<HTMLDivElement | null>(null);
+
+  // Diagnostic Images Mapping Helper
+  const getImagingForInvestigation = (caseId: string, invId: string) => {
+    if (invId === "ecg" || invId === "ekg_stroke") {
+      return {
+        title: "12-Lead Electrocardiogram (ECG)",
+        url: "/src/assets/images/cardio_simulation_1782492064510.jpg",
+        modality: "radiology" as const,
+        description: "Analyze ST-segment morphology, rhythm intervals, and reciprocal Lead vector relationships."
+      };
+    }
+    if (invId === "cxr") {
+      return {
+        title: "Chest Radiography (CXR)",
+        url: "/src/assets/images/pulmo_simulation_1782492084090.jpg",
+        modality: "radiology" as const,
+        description: "Inspect lung volume inflation levels, flattened diaphragms, bibasilar markings, and heart width."
+      };
+    }
+    if (invId === "ct_head") {
+      return {
+        title: "Non-contrast Head CT Scan",
+        url: "/src/assets/images/neuro_simulation_1782492104992.jpg",
+        modality: "radiology" as const,
+        description: "Critically evaluate for early ischemic signs or blood collections in the cortical valleys."
+      };
+    }
+    if (caseId === "aki" && invId === "chemistry") {
+      return {
+        title: "Renal Sonogram / Nephro Scan",
+        url: "/src/assets/images/nephro_simulation_1782492139486.jpg",
+        modality: "ultrasound" as const,
+        description: "Assess echogenicity, parenchymal thickness, and check for any post-renal mechanical hydronephrosis."
+      };
+    }
+    if (caseId === "dka" && invId === "ketones") {
+      return {
+        title: "Endocrine Metabolic Diagnostic Plot",
+        url: "/src/assets/images/endo_simulation_1782492213629.jpg",
+        modality: "schema" as const,
+        description: "Graphing metabolic anion gap acidosis, severe ketonemic progression, and respiratory compensation."
+      };
+    }
+    return null;
+  };
 
   // If a custom case is injected from an MCQ, immediately start it!
   useEffect(() => {
@@ -81,6 +136,13 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
     setShowSummary(false);
     setDiagnosticConfidence(50);
     setConfidenceHistory([]);
+    setSelectedImagingId(null);
+    setPacsBrightness(100);
+    setPacsContrast(100);
+    setPacsZoom(100);
+    setPacsCaliperActive(false);
+    setPacsCaliperStart(null);
+    setPacsCaliperEnd(null);
   };
 
   const handleActionSelect = async (action: TwinAction) => {
@@ -180,8 +242,40 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
   const handleOrderInvestigation = (invId: string) => {
     if (orderedInvestigations.includes(invId)) return;
     setOrderedInvestigations(prev => [...prev, invId]);
+    
+    // Auto-select in PACS workstation if it has visual imaging
+    if (activePreset) {
+      const imgData = getImagingForInvestigation(activePreset.id, invId);
+      if (imgData) {
+        setSelectedImagingId(invId);
+      }
+    }
+
     // Small score penalty for excessive unordered tests (optional realism), but here we praise appropriate diagnostic actions
     setClinicalScore(prev => Math.min(100, prev + 2));
+  };
+
+  const handlePacsClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!pacsCaliperActive || !pacsImgRef.current) return;
+    const rect = pacsImgRef.current.getBoundingClientRect();
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+
+    if (!pacsCaliperStart || (pacsCaliperStart && pacsCaliperEnd)) {
+      setPacsCaliperStart({ x, y });
+      setPacsCaliperEnd(null);
+    } else {
+      setPacsCaliperEnd({ x, y });
+    }
+  };
+
+  const getCaliperDistance = () => {
+    if (!pacsCaliperStart || !pacsCaliperEnd) return "0.00";
+    const dx = pacsCaliperEnd.x - pacsCaliperStart.x;
+    const dy = pacsCaliperEnd.y - pacsCaliperStart.y;
+    const pctDist = Math.sqrt(dx * dx + dy * dy);
+    // Say 100% of the viewport width is roughly 25.0 cm/mm or other medical scale
+    return (pctDist * 0.18).toFixed(2);
   };
 
   const endCaseSimulation = () => {
@@ -613,19 +707,215 @@ export default function BioTwinSimulator({ customCase, onClearCustomCase }: BioT
 
               {/* Investigation Terminal Log */}
               {orderedInvestigations.length > 0 && (
-                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 space-y-2 font-mono text-[11px] text-slate-700 max-h-36 overflow-y-auto">
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3.5 space-y-2.5 font-mono text-[11px] text-slate-700 max-h-56 overflow-y-auto" id="investigation-results-pacs-log">
                   <div className="text-[9px] uppercase tracking-wider text-slate-400 font-bold mb-1">Investigation Results Log:</div>
                   {orderedInvestigations.map(invId => {
                     const inv = activePreset.investigations.find(i => i.id === invId);
+                    const hasImaging = !!getImagingForInvestigation(activePreset.id, invId);
                     return (
-                      <div key={invId} className="border-b border-slate-100 pb-1.5 last:border-0 last:pb-0">
-                        <span className="text-[#003B95] font-bold">[{inv?.name}]:</span> {inv?.result}
+                      <div key={invId} className="border-b border-slate-100 pb-2.5 mb-2.5 last:border-0 last:pb-0 last:mb-0">
+                        <div className="flex justify-between items-center gap-2 mb-1">
+                          <span className="text-[#003B95] font-extrabold text-[10px] uppercase tracking-wide">[{inv?.name}]:</span>
+                          {hasImaging && (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedImagingId(invId)}
+                              className={`text-[8px] uppercase tracking-wider px-2 py-0.5 rounded-md font-bold transition-all cursor-pointer ${selectedImagingId === invId ? "bg-sky-600 text-white shadow-xs" : "bg-sky-50 text-sky-600 hover:bg-sky-100 border border-sky-100"}`}
+                            >
+                              👁️ PACS View
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-slate-600 leading-relaxed font-sans">{inv?.result}</div>
                       </div>
                     );
                   })}
                 </div>
               )}
             </div>
+
+            {/* PACS IMAGING & ECG WORKSTATION */}
+            {selectedImagingId && activePreset && (() => {
+              const imgData = getImagingForInvestigation(activePreset.id, selectedImagingId);
+              if (!imgData) return null;
+              
+              const filterStyles = {
+                filter: `brightness(${pacsBrightness}%) contrast(${pacsContrast}%) grayscale(100%)`
+              };
+              
+              return (
+                <div className="bg-[#090D16] border border-[#1E293B] rounded-2xl overflow-hidden text-slate-100 shadow-xl" id="pacs-workstation-viewport">
+                  {/* Top Bar Status */}
+                  <div className="bg-[#111827] border-b border-[#1E293B] px-3.5 py-2 flex items-center justify-between text-[9px] font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      <span className="font-bold tracking-widest text-cyan-400 uppercase">PACS DIAGNOSTICS WORKSTATION v2.0</span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setSelectedImagingId(null)}
+                      className="text-slate-400 hover:text-white font-black text-xs px-1 hover:bg-slate-800 rounded transition-all"
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-extrabold font-serif italic text-slate-200 tracking-wide">{imgData.title}</span>
+                      <span className="font-mono text-[8px] bg-sky-950/80 text-sky-400 px-2 py-0.5 rounded border border-sky-900 uppercase font-black">
+                        {imgData.modality}
+                      </span>
+                    </div>
+
+                    {/* Image Viewport */}
+                    <div 
+                      ref={pacsImgRef}
+                      onClick={handlePacsClick}
+                      className="relative border border-slate-800 rounded-xl overflow-hidden aspect-video bg-black flex items-center justify-center cursor-crosshair group shadow-inner"
+                    >
+                      {/* Grid Lines Overlay */}
+                      <div className="absolute inset-0 bg-[linear-gradient(to_right,#111827_1px,transparent_1px),linear-gradient(to_bottom,#111827_1px,transparent_1px)] bg-[size:24px_24px] opacity-20 pointer-events-none" />
+
+                      <img 
+                        src={imgData.url} 
+                        alt={imgData.title}
+                        referrerPolicy="no-referrer"
+                        style={{
+                          ...filterStyles,
+                          transform: `scale(${pacsZoom / 100})`,
+                          transition: "transform 0.1s ease-out"
+                        }}
+                        className="object-contain max-h-full max-w-full select-none pointer-events-none"
+                      />
+
+                      {/* Caliper Markers & Lines */}
+                      {pacsCaliperActive && pacsCaliperStart && (
+                        <div 
+                          className="absolute w-2.5 h-2.5 bg-yellow-400 rounded-full border border-black shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10 animate-ping"
+                          style={{ left: `${pacsCaliperStart.x}%`, top: `${pacsCaliperStart.y}%` }}
+                        />
+                      )}
+                      {pacsCaliperActive && pacsCaliperStart && (
+                        <div 
+                          className="absolute w-2 h-2 bg-yellow-400 rounded-full border border-black shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
+                          style={{ left: `${pacsCaliperStart.x}%`, top: `${pacsCaliperStart.y}%` }}
+                        />
+                      )}
+                      {pacsCaliperActive && pacsCaliperEnd && (
+                        <div 
+                          className="absolute w-2 h-2 bg-yellow-400 rounded-full border border-black shadow-md -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
+                          style={{ left: `${pacsCaliperEnd.x}%`, top: `${pacsCaliperEnd.y}%` }}
+                        />
+                      )}
+                      {pacsCaliperActive && pacsCaliperStart && pacsCaliperEnd && (
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                          <line 
+                            x1={`${pacsCaliperStart.x}%`} 
+                            y1={`${pacsCaliperStart.y}%`} 
+                            x2={`${pacsCaliperEnd.x}%`} 
+                            y2={`${pacsCaliperEnd.y}%`} 
+                            stroke="#FACC15"
+                            strokeWidth="2"
+                            strokeDasharray="4 2"
+                          />
+                          <text 
+                            x={`${(pacsCaliperStart.x + pacsCaliperEnd.x) / 2}%`} 
+                            y={`${(pacsCaliperStart.y + pacsCaliperEnd.y) / 2 - 4}%`}
+                            fill="#FACC15"
+                            fontSize="10"
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                            className="text-center filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
+                          >
+                            {getCaliperDistance()} units
+                          </text>
+                        </svg>
+                      )}
+
+                      {/* Diagnostic Overlay Info */}
+                      <div className="absolute bottom-2.5 left-2.5 right-2.5 bg-black/85 px-3 py-2 rounded-lg text-[10px] leading-relaxed text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-250 pointer-events-none font-sans border border-slate-800 shadow-md">
+                        <strong className="text-cyan-400 uppercase tracking-widest text-[8px] font-mono block mb-1">📟 Clinical Guidance</strong>
+                        {imgData.description}
+                      </div>
+                    </div>
+
+                    {/* Caliper Controls */}
+                    <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPacsCaliperActive(!pacsCaliperActive);
+                          setPacsCaliperStart(null);
+                          setPacsCaliperEnd(null);
+                        }}
+                        className={`py-1.5 px-2.5 rounded-lg border flex items-center justify-center gap-1.5 transition-all cursor-pointer font-bold ${pacsCaliperActive ? "bg-yellow-500/20 text-yellow-400 border-yellow-500" : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"}`}
+                      >
+                        <Sliders className="h-3.5 w-3.5" />
+                        {pacsCaliperActive ? "CALIPER: ACTIVE" : "CALIPER: STANDBY"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPacsCaliperStart(null);
+                          setPacsCaliperEnd(null);
+                        }}
+                        disabled={!pacsCaliperStart}
+                        className="py-1.5 px-2 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-200 border border-slate-800 flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed font-bold"
+                      >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        RESET CALIPERS
+                      </button>
+                    </div>
+
+                    {/* Image Adjustment Sliders */}
+                    <div className="space-y-3 pt-2.5 border-t border-slate-800/80">
+                      {/* Brightness */}
+                      <div className="flex items-center gap-3 text-[10px] font-mono">
+                        <span className="w-16 text-slate-400 font-extrabold tracking-wider">BRIGHTNESS:</span>
+                        <input 
+                          type="range" 
+                          min="50" 
+                          max="150" 
+                          value={pacsBrightness} 
+                          onChange={(e) => setPacsBrightness(Number(e.target.value))}
+                          className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" 
+                        />
+                        <span className="w-8 text-right text-slate-400">{pacsBrightness}%</span>
+                      </div>
+
+                      {/* Contrast */}
+                      <div className="flex items-center gap-3 text-[10px] font-mono">
+                        <span className="w-16 text-slate-400 font-extrabold tracking-wider">CONTRAST:</span>
+                        <input 
+                          type="range" 
+                          min="50" 
+                          max="150" 
+                          value={pacsContrast} 
+                          onChange={(e) => setPacsContrast(Number(e.target.value))}
+                          className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" 
+                        />
+                        <span className="w-8 text-right text-slate-400">{pacsContrast}%</span>
+                      </div>
+
+                      {/* Zoom */}
+                      <div className="flex items-center gap-3 text-[10px] font-mono">
+                        <span className="w-16 text-slate-400 font-extrabold tracking-wider">ZOOM:</span>
+                        <input 
+                          type="range" 
+                          min="100" 
+                          max="180" 
+                          value={pacsZoom} 
+                          onChange={(e) => setPacsZoom(Number(e.target.value))}
+                          className="flex-1 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" 
+                        />
+                        <span className="w-8 text-right text-slate-400">{pacsZoom}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* RIGHT 7 COLS: Main Action Panel and Feedback Terminal */}
